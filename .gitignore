@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+ENV/
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Firebase credentials (keep secret)
+*firebase-adminsdk*.json
+*bike-rendal-manage-firebase-adminsdk*.json
+serviceAccountKey.json
+
+# Logs
+*.log
+
+# Misc
+*.sqlite3
+*.db
