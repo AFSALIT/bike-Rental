@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "bike-rendal-manage",
+  "private_key_id": "a6d91a2ca6e4276e50ef260442f2c7b273657202",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCvohzNV2ZqZkZb\ns4+/J0ncrezY9Z7cnB11iS64bB4z26SO4kkO+oPjExnmy1MuYlMVhCVi/sMKyvHh\nzGeuLYBCzKPuMuzUTFYA9kdETp2JhcC1fnZ6SGkzUi0WD6ywdqMMyf9B6JAIWkGG\nqUunhtbY0+LmaWrfGLQw3i/M5h+pP8Wypkyfthw4nb0hqSeBTHPa7KtezVlQFRlw\nqpzPIUJBnX1C9MBmk91nnR+qn15aRxQfAtT5Dsh1Z9EBA7MRN5gm/LrcbgljJPVF\nlfmp5KOLGThAMtRQSAZOUU8UgLKVXN3SEL21zq83jvc8Z6D8kHVx0mB3A9a1bw0I\nLRe3i/2DAgMBAAECggEALlAXuzgETCNLA0xep9/S1MvSLEXcjbzm8cLqXHw6HJ+b\nDYhzDm2V0I+NYXQVK6KG2SIe/7NBODvau5l8b4wVCchPo/Suya6VcSyAD22Rkh2A\nevttf4JPp1ZQiEQ628904F71neoW7PTr2XgT+ImQZt28s9hxc4HephI41ZWLHMRB\n0KGf2uvItPJyld5nOWgiaIGRP52leIHwPjcIwEXT91s7htHaBeSCpkvKpH9wD41H\nIo1n6fQotoYMHqFkaanPhFBv25F1S/g+Vd00LAOy8EdRIiwGHAHfncGG1FdZhmMw\nz/16UYFiFVTYCzXvGVY4YydfJRN/zycU6CHbIVvxxQKBgQDcvPzo1WQHwgj+Is8E\nPeo+ng8FfLFODkMHe1yIcTHBv2BXN9VpGT7NxieuJ/v8iug/LGzoZUyObMbnEHLu\n3BA/dYjJ/L5vv1gkq6LydfD6QdKcxQ0vCDAMrlc1HAT3gZ4kFC8XKnXe4Jn8eAQh\nKcfB2bqR9rVtPZqTpfYJj8fDBwKBgQDLsJKAy2ZjK+V26mUQpyANsOK/WjY3273t\nbQBpqJ/LVEMa+hp97qD+nOHbbDliDBYJDoQU7IUxRrVNcmuzzQLjP+pQMuGmUFrX\nqnN1/XZPVNdlZaKutcBFD5ZeO7vtW68I+gM+OkquLxR7fQ3wbosj/l6B14qBOCXy\nm2QyFRXmpQKBgACdynr/9YqMAShsgnV5ksjf+hzCz1/vbEJ+FrEO19u5pBQ6RK9J\nccJzVjMHS43V+XYLsrYnakJPjXKhuiBunuD+fAZMXV/EggOAMzFIIQch3euwJSxH\ncpLmfbnZPS5Pv1hMciE3biLUL7njv+czzan96KZ1sOYAMQlOglRegWlLAoGBAMZj\nMR3efdfDjlgXDd59WHvdN8v1+m7HSKIyEz/Vq+VnKYDh7eGQBSBX/qcvLmivqtqh\nV8XlZAjNfJJ1Ci9yUwixXO9Fz3+kLgZ2DsTx3ESCNtScfCm7/guFlggsF+qj7MRK\nddQrBEfItSNddrEhicXB35yJKW6YGGXGMX2SCeW9AoGAfXKz9Bw8jUhdGyCH2SV5\n9BERpU43m/6AjqpjwZevYU7bYVh2nH9DJtk2mFZrjMGYQLYVEktj6dYS/EohIaxp\nCQ32oCEPbamWIx/6a9ombmgBZ9U+1EcFNtWq2IUAQfu+4w6VtBKGmgMPdLJlDzSn\nsaXrEuDwww81MalKpBvhRZU=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@bike-rendal-manage.iam.gserviceaccount.com",
+  "client_id": "103710047439144462926",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40bike-rendal-manage.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
