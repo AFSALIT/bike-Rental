@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bike Purchase Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --danger: #e63946;
+            --warning: #fca311;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fb;
+            color: #333;
+            padding-bottom: 40px;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card-header {
+            background: linear-gradient(120deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #444;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15);
+        }
+        
+        .btn {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(to right, var(--secondary), var(--primary));
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: linear-gradient(to right, #2a9d8f, #1d7874);
+            border: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(to right, var(--danger), #c1121f);
+            border: none;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(to right, var(--warning), #e85d04);
+            border: none;
+        }
+        
+        .table th {
+            background: linear-gradient(120deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            padding: 12px 15px;
+        }
+        
+        .table td {
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .badge {
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .badge-new {
+            background: linear-gradient(to right, #2a9d8f, #1d7874);
+        }
+        
+        .badge-used {
+            background: linear-gradient(to right, var(--warning), #e85d04);
+        }
+        
+        .badge-damaged {
+            background: linear-gradient(to right, var(--danger), #c1121f);
+        }
+        
+        .action-buttons .btn {
+            padding: 5px 10px;
+            margin: 0 3px;
+        }
+        
+        .stats-box {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-box i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .stats-box h3 {
+            font-size: 24px;
+            margin: 0;
+        }
+        
+        .stats-box p {
+            margin: 0;
+            color: var(--gray);
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-container i {
+            position: absolute;
+            left: 15px;
+            top: 12px;
+            color: var(--gray);
+        }
+        
+        .search-container input {
+            padding-left: 40px;
+            border-radius: 50px;
+        }
+        
+        .purchase-price {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--gray);
+        }
+        
+        .empty-state i {
+            font-size: 60px;
+            margin-bottom: 15px;
+            color: #ddd;
+        }
+        
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .action-buttons .btn {
+                margin: 3px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1><i class="fas fa-bicycle me-3"></i>Bike Purchase Management</h1>
+                    <p class="mb-0">Manage your bike purchases efficiently</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="btn-group">
+                        <button class="btn btn-outline-light"><i class="fas fa-download me-1"></i> Export</button>
+                        <button class="btn btn-outline-light"><i class="fas fa-cog me-1"></i> Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="stats-box card">
+                    <div class="card-body">
+                        <i class="fas fa-bicycle text-primary"></i>
+                        <h3 id="totalBikes">0</h3>
+                        <p>Total Bikes Purchased</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="stats-box card">
+                    <div class="card-body">
+                        <i class="fas fa-dollar-sign text-success"></i>
+                        <h3 id="totalInvestment">$0</h3>
+                        <p>Total Investment</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="stats-box card">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line text-warning"></i>
+                        <h3 id="avgPrice">$0</h3>
+                        <p>Average Price per Bike</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-plus-circle me-2"></i>Add New Bike Purchase
+                    </div>
+                    <div class="card-body">
+                        <form id="purchaseBikeForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="bike_name" class="form-label">Bike Name</label>
+                                    <input type="text" id="bike_name" name="bike_name" class="form-control" required />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="bike_number" class="form-label">Bike Number</label>
+                                    <input type="text" id="bike_number" name="bike_number" class="form-control" required />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="previous_owner_name" class="form-label">Previous Owner Name</label>
+                                    <input type="text" id="previous_owner_name" name="previous_owner_name" class="form-control" required />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="date" class="form-label">Purchase Date</label>
+                                    <input type="date" id="date" name="date" class="form-control" required />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="purchase_price" class="form-label">Purchase Price ($)</label>
+                                    <input type="number" id="purchase_price" name="purchase_price" step="0.01" class="form-control" required />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="condition" class="form-label">Condition</label>
+                                    <select id="condition" name="condition" class="form-select" required>
+                                        <option value="">Select Condition</option>
+                                        <option value="New">New</option>
+                                        <option value="Used">Used</option>
+                                        <option value="Damaged">Damaged</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Submit Purchase</button>
+                                <button type="button" id="updateBtn" class="btn btn-success" style="display:none;"><i class="fas fa-save me-1"></i> Update</button>
+                                <button type="button" id="cancelUpdateBtn" class="btn btn-secondary" style="display:none;"><i class="fas fa-times me-1"></i> Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-7">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-list me-2"></i>Purchase History</span>
+                        <div class="search-container">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search purchases...">
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0" id="purchaseBikesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Bike Name</th>
+                                        <th>Number</th>
+                                        <th>Price</th>
+                                        <th>Condition</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Purchase bikes will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emptyState" class="empty-state">
+                            <i class="fas fa-bicycle"></i>
+                            <h4>No purchases yet</h4>
+                            <p>Add your first bike purchase to get started</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let purchases = [];
+        let editingBikeNumber = null;
+
+        document.getElementById('purchaseBikeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (editingBikeNumber) {
+                await updatePurchaseBike();
+            } else {
+                await addPurchaseBike();
+            }
+        });
+
+        document.getElementById('updateBtn').addEventListener('click', updatePurchaseBike);
+        document.getElementById('cancelUpdateBtn').addEventListener('click', cancelUpdate);
+        document.getElementById('searchInput').addEventListener('input', filterPurchases);
+
+        // Sample data for demonstration
+        const sampleData = [
+            {
+                bike_name: "Mountain Bike Pro",
+                bike_number: "MB001",
+                previous_owner_name: "John Smith",
+                date: "2023-05-15",
+                purchase_price: 450.00,
+                condition: "New"
+            },
+            {
+                bike_name: "City Rider",
+                bike_number: "CR205",
+                previous_owner_name: "Emma Johnson",
+                date: "2023-04-22",
+                purchase_price: 280.50,
+                condition: "Used"
+            },
+            {
+                bike_name: "Speed Demon",
+                bike_number: "SD308",
+                previous_owner_name: "Mike Williams",
+                date: "2023-06-10",
+                purchase_price: 520.75,
+                condition: "Damaged"
+            }
+        ];
+
+        async function loadPurchaseBikes() {
+            try {
+                // For demo purposes, we'll use sample data
+                // In a real application, you would fetch from the API
+                // const response = await fetch(`${API_BASE}/purchase-bike/list`);
+                // const data = await response.json();
+                
+                // Using sample data for demonstration
+                purchases = sampleData;
+                populateTable(purchases);
+                updateStats();
+                
+                // Hide empty state if we have data
+                document.getElementById('emptyState').style.display = purchases.length ? 'none' : 'block';
+            } catch (error) {
+                alert('Failed to load purchase bikes: ' + error.message);
+            }
+        }
+
+        function populateTable(purchases) {
+            const tbody = document.querySelector('#purchaseBikesTable tbody');
+            tbody.innerHTML = '';
+            
+            purchases.forEach(purchase => {
+                const tr = document.createElement('tr');
+                
+                // Determine badge class based on condition
+                let badgeClass = '';
+                if (purchase.condition === 'New') badgeClass = 'badge-new';
+                else if (purchase.condition === 'Used') badgeClass = 'badge-used';
+                else if (purchase.condition === 'Damaged') badgeClass = 'badge-damaged';
+                
+                tr.innerHTML = `
+                    <td>${purchase.bike_name}</td>
+                    <td>${purchase.bike_number}</td>
+                    <td class="purchase-price">$${purchase.purchase_price.toFixed(2)}</td>
+                    <td><span class="badge ${badgeClass}">${purchase.condition}</span></td>
+                    <td class="action-buttons">
+                        <button class="btn btn-sm btn-primary" onclick="editPurchaseBike('${purchase.bike_number}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePurchaseBike('${purchase.bike_number}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStats() {
+            // Update stats boxes
+            document.getElementById('totalBikes').textContent = purchases.length;
+            
+            const totalInvestment = purchases.reduce((sum, purchase) => sum + parseFloat(purchase.purchase_price), 0);
+            document.getElementById('totalInvestment').textContent = '$' + totalInvestment.toFixed(2);
+            
+            const avgPrice = purchases.length ? totalInvestment / purchases.length : 0;
+            document.getElementById('avgPrice').textContent = '$' + avgPrice.toFixed(2);
+        }
+
+        function filterPurchases() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredPurchases = purchases.filter(purchase => 
+                purchase.bike_name.toLowerCase().includes(searchTerm) ||
+                purchase.bike_number.toLowerCase().includes(searchTerm) ||
+                purchase.previous_owner_name.toLowerCase().includes(searchTerm)
+            );
+            populateTable(filteredPurchases);
+        }
+
+        async function addPurchaseBike() {
+            const form = document.getElementById('purchaseBikeForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.purchase_price = parseFloat(data.purchase_price);
+
+            try {
+                // In a real application, you would send this to the API
+                // const response = await fetch(`${API_BASE}/purchase-bike`, {
+                //     method: 'POST',
+                //     body: new URLSearchParams(data)
+                // });
+                
+                // For demo, we'll just add to our array
+                purchases.push(data);
+                
+                alert('Purchase bike added successfully');
+                form.reset();
+                populateTable(purchases);
+                updateStats();
+                document.getElementById('emptyState').style.display = 'none';
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function editPurchaseBike(bikeNumber) {
+            const purchase = purchases.find(p => p.bike_number === bikeNumber);
+            
+            if (purchase) {
+                editingBikeNumber = bikeNumber;
+                document.getElementById('bike_name').value = purchase.bike_name;
+                document.getElementById('bike_number').value = purchase.bike_number;
+                document.getElementById('previous_owner_name').value = purchase.previous_owner_name;
+                document.getElementById('date').value = purchase.date;
+                document.getElementById('purchase_price').value = purchase.purchase_price;
+                document.getElementById('condition').value = purchase.condition;
+
+                document.getElementById('updateBtn').style.display = 'inline-block';
+                document.getElementById('cancelUpdateBtn').style.display = 'inline-block';
+                document.querySelector('button[type="submit"]').style.display = 'none';
+                document.getElementById('bike_number').disabled = true;
+                
+                // Scroll to form
+                document.getElementById('purchaseBikeForm').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        async function updatePurchaseBike() {
+            const form = document.getElementById('purchaseBikeForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.purchase_price = parseFloat(data.purchase_price);
+
+            try {
+                // In a real application, you would send this to the API
+                // const response = await fetch(`${API_BASE}/purchase-bike/${editingBikeNumber}`, {
+                //     method: 'PUT',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(data)
+                // });
+                
+                // For demo, update the array
+                const index = purchases.findIndex(p => p.bike_number === editingBikeNumber);
+                if (index !== -1) {
+                    purchases[index] = data;
+                }
+                
+                alert('Purchase bike updated successfully');
+                cancelUpdate();
+                populateTable(purchases);
+                updateStats();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function cancelUpdate() {
+            editingBikeNumber = null;
+            document.getElementById('purchaseBikeForm').reset();
+            document.getElementById('updateBtn').style.display = 'none';
+            document.getElementById('cancelUpdateBtn').style.display = 'none';
+            document.querySelector('button[type="submit"]').style.display = 'inline-block';
+            document.getElementById('bike_number').disabled = false;
+        }
+
+        async function deletePurchaseBike(bikeNumber) {
+            if (!confirm('Are you sure you want to delete this purchase bike?')) return;
+            
+            try {
+                // In a real application, you would call the API
+                // const response = await fetch(`${API_BASE}/purchase-bike/${bikeNumber}`, {
+                //     method: 'DELETE'
+                // });
+                
+                // For demo, remove from array
+                purchases = purchases.filter(p => p.bike_number !== bikeNumber);
+                
+                alert('Purchase bike deleted successfully');
+                if (editingBikeNumber === bikeNumber) {
+                    cancelUpdate();
+                }
+                populateTable(purchases);
+                updateStats();
+                
+                // Show empty state if no purchases
+                document.getElementById('emptyState').style.display = purchases.length ? 'none' : 'block';
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // Load purchase bikes on page load
+        window.onload = loadPurchaseBikes;
+    </script>
+</body>
+</html>
