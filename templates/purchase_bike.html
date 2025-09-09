@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Purchase Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.05), 0 6px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e6ef 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(30deg);
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            position: relative;
+        }
+
+        .nav-btn {
+            display: inline-block;
+            padding: 12px 20px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: var(--transition);
+            margin-top: 15px;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(67, 97, 238, 0.3);
+        }
+
+        header h1 i {
+            margin-right: 12px;
+            font-size: 2.5rem;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Styles */
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            height: fit-content;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-gray);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .card h2 i {
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 1.05rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--light-gray);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: var(--transition);
+            background: var(--light);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            background: white;
+        }
+
+        button {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 16px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: var(--transition);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(67, 97, 238, 0.3);
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        th, td {
+            padding: 18px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: rgba(67, 97, 238, 0.03);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-view {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-view:hover {
+            background: #3aaedb;
+        }
+
+        .btn-delete:hover {
+            background: #e3126f;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .controls button {
+            width: auto;
+            padding: 12px 20px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 35px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9);
+            animation: modalAppear 0.3s forwards;
+        }
+
+        @keyframes modalAppear {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            color: var(--primary);
+            margin: 0;
+            border: none;
+            padding: 0;
+        }
+
+        .close {
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--gray);
+            transition: var(--transition);
+        }
+
+        .close:hover {
+            color: var(--danger);
+            transform: rotate(90deg);
+        }
+
+        .detail-item {
+            margin-bottom: 18px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .detail-item strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-item span {
+            font-size: 1.1rem;
+            color: var(--dark);
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 18px 25px;
+            border-radius: 10px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.5s;
+            z-index: 1100;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transform: translateX(100px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .notification i {
+            font-size: 1.5rem;
+        }
+
+        .success {
+            background: linear-gradient(to right, #4cc9f0, #3aaedb);
+        }
+
+        .error {
+            background: linear-gradient(to right, #f72585, #e3126f);
+        }
+
+        .visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.2rem;
+            }
+            
+            header p {
+                font-size: 1rem;
+            }
+            
+            .main-content {
+                gap: 20px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            th, td {
+                padding: 14px 10px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .controls button {
+                width: 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Animation for table rows */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        tbody tr {
+            animation: fadeIn 0.5s ease-out;
+            animation-fill-mode: both;
+        }
+
+        tbody tr:nth-child(1) { animation-delay: 0.05s; }
+        tbody tr:nth-child(2) { animation-delay: 0.1s; }
+        tbody tr:nth-child(3) { animation-delay: 0.15s; }
+        tbody tr:nth-child(4) { animation-delay: 0.2s; }
+        tbody tr:nth-child(5) { animation-delay: 0.25s; }
+        tbody tr:nth-child(6) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-bicycle"></i> Bike Purchase Management</h1>
+            <p>Efficiently manage your bike inventory with our comprehensive system</p>
+        </header>
+
+        <a href="/" class="nav-btn"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a>
+
+        <div class="main-content">
+            <div class="card">
+                <h2><i class="fas fa-plus-circle"></i> Add New Bike</h2>
+                <form id="purchaseForm">
+                    <div class="form-group">
+                        <label for="bike_name">Bike Name</label>
+                        <input type="text" id="bike_name" name="bike_name" placeholder="Enter bike model" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bike_number">Bike Number</label>
+                        <input type="text" id="bike_number" name="bike_number" placeholder="e.g., BK-1234" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="previous_owner_name">Previous Owner</label>
+                        <input type="text" id="previous_owner_name" name="previous_owner_name" placeholder="Owner's full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Purchase Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="purchase_price">Purchase Price ($)</label>
+                        <input type="number" id="purchase_price" name="purchase_price" step="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="condition">Condition</label>
+                        <select id="condition" name="condition" required>
+                            <option value="">Select Condition</option>
+                            <option value="Excellent">Excellent</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                            <option value="Poor">Poor</option>
+                        </select>
+                    </div>
+                    <button type="submit"><i class="fas fa-save"></i> Add Purchase</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-list"></i> Purchased Bikes</h2>
+                <div class="controls">
+                    <button id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh List</button>
+                </div>
+                <div class="table-container">
+                    <table id="bikesTable">
+                        <thead>
+                            <tr>
+                                <th>Bike Name</th>
+                                <th>Bike Number</th>
+                                <th>Purchase Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-bicycle"></i> Bike Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div id="modalBody">
+                <!-- Details will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const purchaseForm = document.getElementById('purchaseForm');
+            const bikesTable = document.getElementById('bikesTable');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const viewModal = document.getElementById('viewModal');
+            const modalBody = document.getElementById('modalBody');
+            const closeModal = document.querySelector('.close');
+            const notification = document.getElementById('notification');
+
+            // Set today's date as default for the date field
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = today;
+
+            // Base URL for API endpoints
+            const baseUrl = window.location.origin;
+
+            // Function to show notification
+            function showNotification(message, type) {
+                notification.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`;
+                notification.className = `notification ${type}`;
+                notification.classList.add('visible');
+                
+                setTimeout(() => {
+                    notification.classList.remove('visible');
+                }, 3000);
+            }
+
+            // Function to fetch and display all bikes
+            async function fetchBikes() {
+                try {
+                    const response = await fetch(`${baseUrl}/purchase-bike/list`);
+                    const data = await response.json();
+                    
+                    const tbody = bikesTable.querySelector('tbody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.purchases && data.purchases.length > 0) {
+                        data.purchases.forEach(bike => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${bike.bike_name}</td>
+                                <td>${bike.bike_number}</td>
+                                <td>${bike.date}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-view" onclick="viewBike('${bike.bike_number}')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <button class="btn btn-delete" onclick="deleteBike('${bike.bike_number}')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 30px; color: var(--gray);">No bikes found. Add your first bike above.</td></tr>`;
+                    }
+                } catch (error) {
+                    console.error('Error fetching bikes:', error);
+                    showNotification('Error fetching bike list', 'error');
+                }
+            }
+
+            // Function to view bike details
+            window.viewBike = async function(bikeNumber) {
+                try {
+                    const response = await fetch(`${baseUrl}/purchase-bike/${bikeNumber}`);
+                    if (response.ok) {
+                        const bike = await response.json();
+                        
+                        modalBody.innerHTML = `
+                            <div class="detail-item">
+                                <strong>Bike Name</strong>
+                                <span>${bike.bike_name}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Bike Number</strong>
+                                <span>${bike.bike_number}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Previous Owner</strong>
+                                <span>${bike.previous_owner_name}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Purchase Date</strong>
+                                <span>${bike.date}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Purchase Price</strong>
+                                <span>$${bike.purchase_price}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Condition</strong>
+                                <span>${bike.condition}</span>
+                            </div>
+                        `;
+                        
+                        viewModal.style.display = 'flex';
+                    } else {
+                        showNotification('Bike not found', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error fetching bike details:', error);
+                    showNotification('Error fetching bike details', 'error');
+                }
+            }
+
+            // Function to delete a bike
+            window.deleteBike = async function(bikeNumber) {
+                if (confirm('Are you sure you want to delete this bike? This action cannot be undone.')) {
+                    try {
+                        const response = await fetch(`${baseUrl}/purchase-bike/${bikeNumber}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            showNotification('Bike deleted successfully', 'success');
+                            fetchBikes();
+                        } else {
+                            showNotification('Error deleting bike', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting bike:', error);
+                        showNotification('Error deleting bike', 'error');
+                    }
+                }
+            }
+
+            // Handle form submission
+            purchaseForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(purchaseForm);
+                const data = Object.fromEntries(formData.entries());
+                
+                try {
+                    const response = await fetch(`${baseUrl}/purchase-bike`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams(data)
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        showNotification(result.message, 'success');
+                        purchaseForm.reset();
+                        // Set date to today again after reset
+                        document.getElementById('date').value = today;
+                        fetchBikes();
+                    } else {
+                        const error = await response.json();
+                        showNotification(error.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error adding bike:', error);
+                    showNotification('Error adding bike', 'error');
+                }
+            });
+
+            // Refresh button event
+            refreshBtn.addEventListener('click', fetchBikes);
+
+            // Close modal
+            closeModal.addEventListener('click', function() {
+                viewModal.style.display = 'none';
+            });
+
+            // Close modal when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === viewModal) {
+                    viewModal.style.display = 'none';
+                }
+            });
+
+            // Initial fetch of bikes
+            fetchBikes();
+        });
+    </script>
+</body>
+</html>
