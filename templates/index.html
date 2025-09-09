@@ -3,658 +3,416 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Rental Management</title>
+    <title>Bike Manager - Multi Rental Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #3498db;
-            --secondary: #2c3e50;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --light: #ecf0f1;
-        }
-        
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .navbar {
-            background-color: var(--secondary);
-        }
-        
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-            margin-bottom: 20px;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .btn-primary {
-            background-color: var(--primary);
-            border-color: var(--primary);
-        }
-        
-        .btn-success {
-            background-color: var(--success);
-            border-color: var(--success);
-        }
-        
-        .status-booked {
-            background-color: var(--primary);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-        
-        .status-returned {
-            background-color: var(--success);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-        
-        .status-cancelled {
-            background-color: var(--danger);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-        
-        #bikeList {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-        
-        .bike-card {
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .bike-card:hover {
-            background-color: #f0f0f0;
-        }
-        
-        .section-title {
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            color: var(--secondary);
-        }
-        
-        .stats-card {
-            text-align: center;
-            padding: 15px;
-        }
-        
-        .stats-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
+        :root { --primary: #3498db; --secondary: #2c3e50; --success: #2ecc71; --danger: #e74c3c; }
+        body { background: #f8f9fa; }
+        .navbar { background: var(--secondary); }
+        .card { border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
+        .status-badge { padding: .25rem .6rem; border-radius: 1rem; font-size: .8rem; }
+        .status-Booked { background:#3498db; color:#fff; }
+        .status-Active { background:#2980b9; color:#fff; }
+        .status-Returned { background:#2ecc71; color:#fff; }
+        .status-Cancelled { background:#e74c3c; color:#fff; }
+        .table thead th { background:#eef6fd; }
     </style>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="fa fa-bicycle me-2"></i>Bike Rental Manager
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="fa fa-home me-1"></i> Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fa fa-cog me-1"></i> Settings</a>
-                    </li>
-                </ul>
-            </div>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fa fa-bicycle me-2"></i>Bike Manager</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"> <span class="navbar-toggler-icon"></span> </button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav ms-auto">
+                
+                <li class="nav-item"><a class="nav-link active" href="/dashboard"><i class="fa fa-layer-group me-1"></i>Multi-Rental Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/purchase-bike"><i class="fa fa-shopping-cart me-1"></i>Purchase Bike</a></li>
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    <div class="container mt-4">
-        <!-- Stats Overview -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <h5>Total Rentals</h5>
-                    <div class="stats-number" id="totalRentals">0</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <h5>Booked</h5>
-                    <div class="stats-number" id="bookedRentals">0</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <h5>Active</h5>
-                    <div class="stats-number" id="activeRentals">0</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <h5>Revenue</h5>
-                    <div class="stats-number" id="totalRevenue">$0</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Bike List -->
-            <div class="col-md-5">
-                <div class="card">
-                    <div class="card-header bg-white">
-                        <h4 class="section-title">Bike Rentals</h4>
+<div class="container mt-4">
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Bikes</h5>
                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addBikeModal">
-                            <i class="fa fa-plus me-1"></i> Add New Rental
+                            <i class="fa fa-plus me-1"></i>Add Bike
                         </button>
                     </div>
-                    <div class="card-body">
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control" placeholder="Search bikes..." id="searchInput">
-                            <button class="btn btn-outline-secondary" type="button">
-                                <i class="fa fa-search"></i>
+                    <div class="mb-3">
+                        <label class="form-label">Select Bike</label>
+                        <select id="bikeSelect" class="form-select">
+                            <option value="" selected disabled>Choose a bike...</option>
+                        </select>
+                    </div>
+                    <div id="selectedBikeInfo" class="small text-muted"></div>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="mb-2">Summary</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="fw-bold" id="summaryTotal">0</div>
+                            <div class="text-muted small">Rentals</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold" id="summaryActive">0</div>
+                            <div class="text-muted small">Active</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold" id="summaryRevenue">$0</div>
+                            <div class="text-muted small">Revenue</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Rentals for Selected Bike</h5>
+                        <div>
+                            <button id="addRentalBtn" class="btn btn-success btn-sm" disabled data-bs-toggle="modal" data-bs-target="#addRentalModal">
+                                <i class="fa fa-plus me-1"></i>Add Rental
                             </button>
                         </div>
-                        <div id="bikeList">
-                            <!-- Bike items will be loaded here -->
-                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Bike Details -->
-            <div class="col-md-7">
-                <div class="card">
-                    <div class="card-header bg-white">
-                        <h4 class="section-title">Rental Details</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="noSelectionMessage" class="text-center p-5">
-                            <i class="fa fa-bicycle fa-4x mb-3 text-muted"></i>
-                            <h5 class="text-muted">Select a bike rental to view details</h5>
-                        </div>
-                        <div id="bikeDetails" style="display: none;">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h4 id="detailBikeName"></h4>
-                                <span id="detailStatus" class="status-booked"></span>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Bike Number:</strong> <span id="detailBikeNumber"></span>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Rental Period:</strong> <span id="detailRentalPeriod"></span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Advance Payment:</strong> $<span id="detailAdvance"></span>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Full Cost:</strong> $<span id="detailFullCost"></span>
-                                </div>
-                            </div>
-                            <div class="mt-4">
-                                <button class="btn btn-primary me-2" id="editBtn" data-bs-toggle="modal" data-bs-target="#editBikeModal">
-                                    <i class="fa fa-edit me-1"></i> Edit
-                                </button>
-                                <button class="btn btn-danger" id="deleteBtn">
-                                    <i class="fa fa-trash me-1"></i> Delete
-                                </button>
-                            </div>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="rentalsTable">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Advance</th>
+                                    <th>Full Cost</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="5" class="text-center text-muted">Select a bike to view rentals</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Add Bike Modal -->
-    <div class="modal fade" id="addBikeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Bike Rental</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addBikeForm">
-                        <div class="mb-3">
-                            <label for="bikeNumber" class="form-label">Bike Number *</label>
-                            <input type="text" class="form-control" id="bikeNumber" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="bikeName" class="form-label">Bike Name *</label>
-                            <input type="text" class="form-control" id="bikeName" required>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="rentStartDate" class="form-label">Rent Start Date *</label>
-                                <input type="date" class="form-control" id="rentStartDate" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="rentEndDate" class="form-label">Rent End Date *</label>
-                                <input type="date" class="form-control" id="rentEndDate" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="advance" class="form-label">Advance Payment ($)</label>
-                                <input type="number" class="form-control" id="advance" value="0">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="fullCost" class="form-label">Full Cost ($)</label>
-                                <input type="number" class="form-control" id="fullCost" value="0">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status">
-                                <option value="Booked">Booked</option>
-                                <option value="Active">Active</option>
-                                <option value="Returned">Returned</option>
-                                <option value="Cancelled">Cancelled</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="submitBikeBtn">Add Rental</button>
-                </div>
-            </div>
-        </div>
+<!-- Add Bike Modal -->
+<div class="modal fade" id="addBikeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Bike</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addBikeForm">
+          <div class="mb-3">
+            <label class="form-label">Bike Number *</label>
+            <input type="text" class="form-control" id="newBikeNumber" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Bike Name *</label>
+            <input type="text" class="form-control" id="newBikeName" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="submitAddBike">Add Bike</button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Edit Bike Modal -->
-    <div class="modal fade" id="editBikeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Bike Rental</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editBikeForm">
-                        <input type="hidden" id="editBikeNumber">
-                        <div class="mb-3">
-                            <label for="editBikeName" class="form-label">Bike Name *</label>
-                            <input type="text" class="form-control" id="editBikeName" required>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="editRentStartDate" class="form-label">Rent Start Date *</label>
-                                <input type="date" class="form-control" id="editRentStartDate" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="editRentEndDate" class="form-label">Rent End Date *</label>
-                                <input type="date" class="form-control" id="editRentEndDate" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="editAdvance" class="form-label">Advance Payment ($)</label>
-                                <input type="number" class="form-control" id="editAdvance" value="0">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="editFullCost" class="form-label">Full Cost ($)</label>
-                                <input type="number" class="form-control" id="editFullCost" value="0">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editStatus" class="form-label">Status</label>
-                            <select class="form-select" id="editStatus">
-                                <option value="Booked">Booked</option>
-                                <option value="Active">Active</option>
-                                <option value="Returned">Returned</option>
-                                <option value="Cancelled">Cancelled</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="updateBikeBtn">Update Rental</button>
-                </div>
+<!-- Add Rental Modal -->
+<div class="modal fade" id="addRentalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Rental</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addRentalForm">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Start Date *</label>
+              <input type="date" class="form-control" id="rentStart" required>
             </div>
-        </div>
-    </div>
-
-    <!-- Confirmation Modal -->
-    <div class="modal fade" id="confirmationModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Deletion</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete the rental for bike <span id="deleteBikeName" class="fw-bold"></span> (Bike number: <span id="deleteBikeNumber"></span>)?</p>
-                    <p class="text-danger">This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Rental</button>
-                </div>
+            <div class="col-6">
+              <label class="form-label">End Date *</label>
+              <input type="date" class="form-control" id="rentEnd" required>
             </div>
-        </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label">Advance</label>
+              <input type="number" class="form-control" id="rentAdvance" value="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Full Cost</label>
+              <input type="number" class="form-control" id="rentFullCost" value="0">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="rentStatus">
+              <option>Booked</option>
+              <option>Active</option>
+              <option>Returned</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-success" id="submitAddRental">Add Rental</button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Global variables
-        let currentBike = null;
-        const API_BASE = ''; // Same-origin (served by Flask)
+<!-- Edit Rental Modal -->
+<div class="modal fade" id="editRentalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Rental</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editRentalForm">
+          <input type="hidden" id="editRentalId">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Start Date *</label>
+              <input type="date" class="form-control" id="editRentStart" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">End Date *</label>
+              <input type="date" class="form-control" id="editRentEnd" required>
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label">Advance</label>
+              <input type="number" class="form-control" id="editRentAdvance" value="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Full Cost</label>
+              <input type="number" class="form-control" id="editRentFullCost" value="0">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="editRentStatus">
+              <option>Booked</option>
+              <option>Active</option>
+              <option>Returned</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="submitEditRental">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-        // DOM elements
-        const bikeList = document.getElementById('bikeList');
-        const bikeDetails = document.getElementById('bikeDetails');
-        const noSelectionMessage = document.getElementById('noSelectionMessage');
-        
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            loadBikes();
-            setupEventListeners();
-        });
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const API_BASE = '';
+  const bikeSelect = document.getElementById('bikeSelect');
+  const selectedBikeInfo = document.getElementById('selectedBikeInfo');
+  const addRentalBtn = document.getElementById('addRentalBtn');
+  const rentalsTableBody = document.querySelector('#rentalsTable tbody');
+  const summaryTotal = document.getElementById('summaryTotal');
+  const summaryActive = document.getElementById('summaryActive');
+  const summaryRevenue = document.getElementById('summaryRevenue');
 
-        // Set up event listeners
-        function setupEventListeners() {
-            document.getElementById('submitBikeBtn').addEventListener('click', addBike);
-            document.getElementById('updateBikeBtn').addEventListener('click', updateBike);
-            document.getElementById('deleteBtn').addEventListener('click', confirmDelete);
-            document.getElementById('confirmDeleteBtn').addEventListener('click', deleteBike);
-            document.getElementById('searchInput').addEventListener('input', filterBikes);
-        }
+  let currentBike = null;
 
-        // Load all bikes from the API
-        async function loadBikes() {
-            try {
-                const response = await fetch(`${API_BASE}/bike`);
-                if (!response.ok) throw new Error('Failed to fetch bikes');
-                
-                const data = await response.json();
-                displayBikes(data.rentals);
-                updateStats(data.rentals);
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to load bikes. Make sure the backend server is running.');
-            }
-        }
+  document.addEventListener('DOMContentLoaded', () => {
+    loadBikes();
+    document.getElementById('submitAddBike').addEventListener('click', onAddBike);
+    document.getElementById('submitAddRental').addEventListener('click', onAddRental);
+    document.getElementById('submitEditRental').addEventListener('click', onEditRental);
+    bikeSelect.addEventListener('change', onBikeChange);
+  });
 
-        // Display bikes in the list
-        function displayBikes(bikes) {
-            bikeList.innerHTML = '';
-            
-            if (bikes.length === 0) {
-                bikeList.innerHTML = '<div class="text-center p-3 text-muted">No bike rentals found</div>';
-                return;
-            }
-            
-            bikes.forEach(bike => {
-                const bikeItem = document.createElement('div');
-                bikeItem.className = 'card bike-card p-3 mb-2';
-                bikeItem.dataset.bikeNumber = bike.bike_number;
-                
-                const statusClass = getStatusClass(bike.status);
-                
-                bikeItem.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0">${bike.bike_name}</h5>
-                            <small class="text-muted">Bike #: ${bike.bike_number}</small>
-                        </div>
-                        <span class="${statusClass}">${bike.status}</span>
-                    </div>
-                    <div class="mt-2">
-                        <small>Rental Period: ${formatDate(bike.rent_start_date)} to ${formatDate(bike.rent_end_date)}</small>
-                    </div>
-                `;
-                
-                bikeItem.addEventListener('click', () => showBikeDetails(bike));
-                bikeList.appendChild(bikeItem);
-            });
-        }
+  async function loadBikes() {
+    try {
+      const res = await fetch(`${API_BASE}/bikes`);
+      const data = await res.json();
+      renderBikeOptions(data.bikes || []);
+    } catch (e) { alert('Failed to load bikes'); }
+  }
 
-        // Show details of a specific bike
-        function showBikeDetails(bike) {
-            currentBike = bike;
-            
-            // Update UI to show details section
-            noSelectionMessage.style.display = 'none';
-            bikeDetails.style.display = 'block';
-            
-            // Populate details
-            document.getElementById('detailBikeName').textContent = bike.bike_name;
-            document.getElementById('detailBikeNumber').textContent = bike.bike_number;
-            document.getElementById('detailRentalPeriod').textContent = 
-                `${formatDate(bike.rent_start_date)} to ${formatDate(bike.rent_end_date)}`;
-            document.getElementById('detailAdvance').textContent = bike.advance || '0';
-            document.getElementById('detailFullCost').textContent = bike.full_cost || '0';
-            
-            // Update status badge
-            const statusElement = document.getElementById('detailStatus');
-            statusElement.textContent = bike.status;
-            statusElement.className = getStatusClass(bike.status);
-            
-            // Enable edit and delete buttons
-            document.getElementById('editBtn').disabled = false;
-            document.getElementById('deleteBtn').disabled = false;
-        }
+  function renderBikeOptions(bikes) {
+    bikeSelect.innerHTML = '<option value="" disabled selected>Choose a bike...</option>';
+    bikes.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.bike_number;
+      opt.textContent = `${b.bike_number} - ${b.bike_name}`;
+      opt.dataset.name = b.bike_name || '';
+      bikeSelect.appendChild(opt);
+    });
+  }
 
-        // Add a new bike rental
-        async function addBike() {
-            const bikeData = {
-                bike_number: document.getElementById('bikeNumber').value,
-                bike_name: document.getElementById('bikeName').value,
-                rent_start_date: document.getElementById('rentStartDate').value,
-                rent_end_date: document.getElementById('rentEndDate').value,
-                advance: document.getElementById('advance').value || 0,
-                full_cost: document.getElementById('fullCost').value || 0,
-                status: document.getElementById('status').value
-            };
-            
-            // Basic validation
-            if (!bikeData.bike_number || !bikeData.bike_name || !bikeData.rent_start_date || !bikeData.rent_end_date) {
-                alert('Please fill in all required fields');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/bike`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(bikeData)
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to add bike');
-                }
-                
-                // Close modal and reset form
-                document.getElementById('addBikeForm').reset();
-                bootstrap.Modal.getInstance(document.getElementById('addBikeModal')).hide();
-                
-                // Reload the bike list
-                loadBikes();
-                
-                alert('Bike rental added successfully!');
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to add bike: ' + error.message);
-            }
-        }
+  async function onBikeChange() {
+    const number = bikeSelect.value;
+    const name = bikeSelect.options[bikeSelect.selectedIndex].dataset.name || '';
+    currentBike = { bike_number: number, bike_name: name };
+    selectedBikeInfo.textContent = `Selected: ${number} ${name ? '(' + name + ')' : ''}`;
+    addRentalBtn.disabled = false;
+    await loadRentals(number);
+  }
 
-        // Update an existing bike rental
-        async function updateBike() {
-            if (!currentBike) return;
-            
-            const bikeData = {
-                bike_name: document.getElementById('editBikeName').value,
-                rent_start_date: document.getElementById('editRentStartDate').value,
-                rent_end_date: document.getElementById('editRentEndDate').value,
-                advance: document.getElementById('editAdvance').value || 0,
-                full_cost: document.getElementById('editFullCost').value || 0,
-                status: document.getElementById('editStatus').value
-            };
-            
-            // Basic validation
-            if (!bikeData.bike_name || !bikeData.rent_start_date || !bikeData.rent_end_date) {
-                alert('Please fill in all required fields');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/bike/${currentBike.bike_number}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(bikeData)
-                });
-                
-                if (!response.ok) throw new Error('Failed to update bike');
-                
-                // Close modal
-                bootstrap.Modal.getInstance(document.getElementById('editBikeModal')).hide();
-                
-                // Reload the bike list and details
-                loadBikes();
-                // Re-fetch the updated bike details
-                const updatedResponse = await fetch(`${API_BASE}/bike/${currentBike.bike_number}`);
-                if (updatedResponse.ok) {
-                    const updatedBike = await updatedResponse.json();
-                    showBikeDetails(updatedBike);
-                }
-                
-                alert('Bike rental updated successfully!');
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to update bike: ' + error.message);
-            }
-        }
+  async function loadRentals(bikeNumber) {
+    rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Loading...</td></tr>';
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${bikeNumber}/rentals`);
+      if (!res.ok) throw new Error('Load rentals failed');
+      const data = await res.json();
+      renderRentals(data.rentals || []);
+    } catch (e) {
+      rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-danger text-center">Failed to load rentals</td></tr>';
+    }
+  }
 
-        // Confirm deletion of a bike rental
-        function confirmDelete() {
-            if (!currentBike) return;
-            
-            document.getElementById('deleteBikeName').textContent = currentBike.bike_name;
-            document.getElementById('deleteBikeNumber').textContent = currentBike.bike_number;
-            
-            const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
-            modal.show();
-        }
+  function renderRentals(rentals) {
+    if (!rentals.length) {
+      rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No rentals yet</td></tr>';
+      updateSummary([]);
+      return;
+    }
+    rentalsTableBody.innerHTML = '';
+    rentals.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDate(r.rent_start_date)} - ${formatDate(r.rent_end_date)}</td>
+        <td>$${fmtNum(r.advance)}</td>
+        <td>$${fmtNum(r.full_cost)}</td>
+        <td><span class="status-badge status-${r.status || 'Booked'}">${r.status || 'Booked'}</span></td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${r.rental_id}"><i class="fa fa-edit"></i></button>
+          <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${r.rental_id}"><i class="fa fa-trash"></i></button>
+        </td>`;
+      rentalsTableBody.appendChild(tr);
+    });
+    rentalsTableBody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', onRentalAction));
+    updateSummary(rentals);
+  }
 
-        // Delete a bike rental
-        async function deleteBike() {
-            if (!currentBike) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/bike/${currentBike.bike_number}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!response.ok) throw new Error('Failed to delete bike');
-                
-                // Close modal
-                bootstrap.Modal.getInstance(document.getElementById('confirmationModal')).hide();
-                
-                // Reset UI
-                bikeDetails.style.display = 'none';
-                noSelectionMessage.style.display = 'block';
-                currentBike = null;
-                
-                // Reload the bike list
-                loadBikes();
-                
-                alert('Bike rental deleted successfully!');
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to delete bike: ' + error.message);
-            }
-        }
+  function updateSummary(rentals) {
+    summaryTotal.textContent = rentals.length;
+    summaryActive.textContent = rentals.filter(r => r.status === 'Active').length;
+    const revenue = rentals.reduce((s, r) => s + (parseFloat(r.full_cost) || 0), 0);
+    summaryRevenue.textContent = `$${revenue.toFixed(2)}`;
+  }
 
-        // Filter bikes based on search input
-        function filterBikes() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const bikeItems = bikeList.getElementsByClassName('bike-card');
-            
-            Array.from(bikeItems).forEach(item => {
-                const bikeName = item.querySelector('h5').textContent.toLowerCase();
-                const bikeNumber = item.querySelector('small').textContent.toLowerCase();
-                
-                if (bikeName.includes(searchTerm) || bikeNumber.includes(searchTerm)) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
+  async function onAddBike() {
+    const bike_number = document.getElementById('newBikeNumber').value.trim();
+    const bike_name = document.getElementById('newBikeName').value.trim();
+    if (!bike_number || !bike_name) { alert('Both fields are required'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/bikes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bike_number, bike_name }) });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Add bike failed'); }
+      document.getElementById('addBikeForm').reset();
+      bootstrap.Modal.getInstance(document.getElementById('addBikeModal')).hide();
+      await loadBikes();
+      // Auto-select the newly added bike
+      bikeSelect.value = bike_number; bikeSelect.dispatchEvent(new Event('change'));
+    } catch (e) { alert(e.message); }
+  }
 
-        // Update statistics
-        function updateStats(bikes) {
-            document.getElementById('totalRentals').textContent = bikes.length;
-            
-            const bookedCount = bikes.filter(bike => bike.status === 'Booked').length;
-            document.getElementById('bookedRentals').textContent = bookedCount;
-            
-            const activeCount = bikes.filter(bike => bike.status === 'Active').length;
-            document.getElementById('activeRentals').textContent = activeCount;
-            
-            const totalRevenue = bikes.reduce((sum, bike) => sum + (parseFloat(bike.full_cost) || 0), 0);
-            document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toFixed(2);
-        }
+  async function onAddRental() {
+    if (!currentBike) return;
+    const payload = {
+      rent_start_date: document.getElementById('rentStart').value,
+      rent_end_date: document.getElementById('rentEnd').value,
+      advance: document.getElementById('rentAdvance').value || 0,
+      full_cost: document.getElementById('rentFullCost').value || 0,
+      status: document.getElementById('rentStatus').value,
+      bike_name: currentBike.bike_name || ''
+    };
+    if (!payload.rent_start_date || !payload.rent_end_date) { alert('Dates are required'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Add rental failed'); }
+      document.getElementById('addRentalForm').reset();
+      bootstrap.Modal.getInstance(document.getElementById('addRentalModal')).hide();
+      await loadRentals(currentBike.bike_number);
+    } catch (e) { alert(e.message); }
+  }
 
-        // Helper function to format date
-        function formatDate(dateString) {
-            if (!dateString) return 'N/A';
-            const date = new Date(dateString);
-            return date.toLocaleDateString();
-        }
+  function onRentalAction(ev) {
+    const btn = ev.currentTarget;
+    const action = btn.dataset.action;
+    const rentalId = btn.dataset.id;
+    if (action === 'delete') return deleteRental(rentalId);
+    if (action === 'edit') return openEditRental(rentalId);
+  }
 
-        // Helper function to get CSS class for status
-        function getStatusClass(status) {
-            switch(status) {
-                case 'Booked': return 'status-booked';
-                case 'Active': return 'status-booked'; // Using same as booked for consistency
-                case 'Returned': return 'status-returned';
-                case 'Cancelled': return 'status-cancelled';
-                default: return 'status-booked';
-            }
-        }
+  async function openEditRental(rentalId) {
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`);
+      if (!res.ok) throw new Error('Load rental failed');
+      const r = await res.json();
+      document.getElementById('editRentalId').value = r.rental_id;
+      document.getElementById('editRentStart').value = r.rent_start_date || '';
+      document.getElementById('editRentEnd').value = r.rent_end_date || '';
+      document.getElementById('editRentAdvance').value = r.advance || 0;
+      document.getElementById('editRentFullCost').value = r.full_cost || 0;
+      document.getElementById('editRentStatus').value = r.status || 'Booked';
+      new bootstrap.Modal(document.getElementById('editRentalModal')).show();
+    } catch (e) { alert(e.message); }
+  }
 
-        // Event listener for when the edit modal is about to be shown
-        document.getElementById('editBikeModal').addEventListener('show.bs.modal', function() {
-            if (!currentBike) return;
-            
-            // Populate the form with current bike data
-            document.getElementById('editBikeNumber').value = currentBike.bike_number;
-            document.getElementById('editBikeName').value = currentBike.bike_name;
-            document.getElementById('editRentStartDate').value = currentBike.rent_start_date;
-            document.getElementById('editRentEndDate').value = currentBike.rent_end_date;
-            document.getElementById('editAdvance').value = currentBike.advance || 0;
-            document.getElementById('editFullCost').value = currentBike.full_cost || 0;
-            document.getElementById('editStatus').value = currentBike.status;
-        });
-    </script>
+  async function onEditRental() {
+    const rentalId = document.getElementById('editRentalId').value;
+    const payload = {
+      rent_start_date: document.getElementById('editRentStart').value,
+      rent_end_date: document.getElementById('editRentEnd').value,
+      advance: document.getElementById('editRentAdvance').value || 0,
+      full_cost: document.getElementById('editRentFullCost').value || 0,
+      status: document.getElementById('editRentStatus').value
+    };
+    if (!payload.rent_start_date || !payload.rent_end_date) { alert('Dates are required'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Update rental failed');
+      bootstrap.Modal.getInstance(document.getElementById('editRentalModal')).hide();
+      await loadRentals(currentBike.bike_number);
+    } catch (e) { alert(e.message); }
+  }
+
+  async function deleteRental(rentalId) {
+    if (!confirm('Delete this rental?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      await loadRentals(currentBike.bike_number);
+    } catch (e) { alert(e.message); }
+  }
+
+  function formatDate(s) { if (!s) return 'N/A'; return new Date(s).toLocaleDateString(); }
+  function fmtNum(n) { const v = parseFloat(n)||0; return v.toFixed(2); }
+</script>
 </body>
 </html>
