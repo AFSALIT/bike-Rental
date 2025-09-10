@@ -26,9 +26,10 @@
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"> <span class="navbar-toggler-icon"></span> </button>
         <div class="collapse navbar-collapse" id="nav">
             <ul class="navbar-nav ms-auto">
-                
+
                 <li class="nav-item"><a class="nav-link active" href="/dashboard"><i class="fa fa-layer-group me-1"></i>Multi-Rental Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="/purchase-bike"><i class="fa fa-shopping-cart me-1"></i>Purchase Bike</a></li>
+                <li class="nav-item"><a class="nav-link" href="/expense"><i class="fa fa-money-bill-wave me-1"></i>Expenses</a></li>
             </ul>
         </div>
     </div>
@@ -92,12 +93,13 @@
                                     <th>Period</th>
                                     <th>Advance</th>
                                     <th>Full Cost</th>
+                                    <th>Commission</th>
                                     <th>Status</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="5" class="text-center text-muted">Select a bike to view rentals</td></tr>
+                                <tr><td colspan="6" class="text-center text-muted">Select a bike to view rentals</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -156,13 +158,17 @@
             </div>
           </div>
           <div class="row g-2 mt-1">
-            <div class="col-6">
+            <div class="col-4">
               <label class="form-label">Advance</label>
               <input type="number" class="form-control" id="rentAdvance" value="0">
             </div>
-            <div class="col-6">
+            <div class="col-4">
               <label class="form-label">Full Cost</label>
               <input type="number" class="form-control" id="rentFullCost" value="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Commission</label>
+              <input type="number" class="form-control" id="rentCommission" value="0">
             </div>
           </div>
           <div class="mt-2">
@@ -173,6 +179,9 @@
               <option>Returned</option>
               <option>Cancelled</option>
             </select>
+          </div>
+          <div class="mt-2">
+            <small>Duration: <span id="addDuration">0 days</span></small>
           </div>
         </form>
       </div>
@@ -206,13 +215,17 @@
             </div>
           </div>
           <div class="row g-2 mt-1">
-            <div class="col-6">
+            <div class="col-4">
               <label class="form-label">Advance</label>
               <input type="number" class="form-control" id="editRentAdvance" value="0">
             </div>
-            <div class="col-6">
+            <div class="col-4">
               <label class="form-label">Full Cost</label>
               <input type="number" class="form-control" id="editRentFullCost" value="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Commission</label>
+              <input type="number" class="form-control" id="editRentCommission" value="0">
             </div>
           </div>
           <div class="mt-2">
@@ -223,6 +236,9 @@
               <option>Returned</option>
               <option>Cancelled</option>
             </select>
+          </div>
+          <div class="mt-2">
+            <small>Duration: <span id="editDuration">0 days</span></small>
           </div>
         </form>
       </div>
@@ -253,7 +269,31 @@
     document.getElementById('submitAddRental').addEventListener('click', onAddRental);
     document.getElementById('submitEditRental').addEventListener('click', onEditRental);
     bikeSelect.addEventListener('change', onBikeChange);
+
+    // Add event listeners to update duration on date change in Add Rental modal
+    document.getElementById('rentStart').addEventListener('change', updateAddDuration);
+    document.getElementById('rentEnd').addEventListener('change', updateAddDuration);
+
+    // Add event listeners to update duration on date change in Edit Rental modal
+    document.getElementById('editRentStart').addEventListener('change', updateEditDuration);
+    document.getElementById('editRentEnd').addEventListener('change', updateEditDuration);
   });
+
+  function updateAddDuration() {
+    const start = document.getElementById('rentStart').value;
+    const end = document.getElementById('rentEnd').value;
+    const durationSpan = document.getElementById('addDuration');
+    const days = calculateDays(start, end);
+    durationSpan.textContent = `${days} days`;
+  }
+
+  function updateEditDuration() {
+    const start = document.getElementById('editRentStart').value;
+    const end = document.getElementById('editRentEnd').value;
+    const durationSpan = document.getElementById('editDuration');
+    const days = calculateDays(start, end);
+    durationSpan.textContent = `${days} days`;
+  }
 
   async function loadBikes() {
     try {
@@ -303,12 +343,21 @@
     }
     rentalsTableBody.innerHTML = '';
     rentals.forEach(r => {
+      const days = calculateDays(r.rent_start_date, r.rent_end_date);
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${formatDate(r.rent_start_date)} - ${formatDate(r.rent_end_date)}</td>
+        <td>${formatDate(r.rent_start_date)} - ${formatDate(r.rent_end_date)} (${days} days)</td>
         <td>$${fmtNum(r.advance)}</td>
         <td>$${fmtNum(r.full_cost)}</td>
-        <td><span class="status-badge status-${r.status || 'Booked'}">${r.status || 'Booked'}</span></td>
+        <td>$${fmtNum(r.commission || 0)}</td>
+        <td>
+          <select class="form-select form-select-sm status-select" data-id="${r.rental_id}">
+            <option value="Booked" ${r.status === 'Booked' ? 'selected' : ''}>Booked</option>
+            <option value="Active" ${r.status === 'Active' ? 'selected' : ''}>Active</option>
+            <option value="Returned" ${r.status === 'Returned' ? 'selected' : ''}>Returned</option>
+            <option value="Cancelled" ${r.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+          </select>
+        </td>
         <td class="text-end">
           <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${r.rental_id}"><i class="fa fa-edit"></i></button>
           <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${r.rental_id}"><i class="fa fa-trash"></i></button>
@@ -316,6 +365,7 @@
       rentalsTableBody.appendChild(tr);
     });
     rentalsTableBody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', onRentalAction));
+    rentalsTableBody.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', onStatusChange));
     updateSummary(rentals);
   }
 
@@ -324,6 +374,10 @@
     summaryActive.textContent = rentals.filter(r => r.status === 'Active').length;
     const revenue = rentals.reduce((s, r) => s + (parseFloat(r.full_cost) || 0), 0);
     summaryRevenue.textContent = `$${revenue.toFixed(2)}`;
+    const commission = rentals.reduce((s, r) => s + (parseFloat(r.commission) || 0), 0);
+    // Optionally add to summary, but since summary has only 3 cols, maybe add to revenue or create new
+    // For now, append to revenue text
+    summaryRevenue.textContent = `$${revenue.toFixed(2)} (Comm: $${commission.toFixed(2)})`;
   }
 
   async function onAddBike() {
@@ -348,6 +402,7 @@
       rent_end_date: document.getElementById('rentEnd').value,
       advance: document.getElementById('rentAdvance').value || 0,
       full_cost: document.getElementById('rentFullCost').value || 0,
+      commission: document.getElementById('rentCommission').value || 0,
       status: document.getElementById('rentStatus').value,
       bike_name: currentBike.bike_name || ''
     };
@@ -379,7 +434,9 @@
       document.getElementById('editRentEnd').value = r.rent_end_date || '';
       document.getElementById('editRentAdvance').value = r.advance || 0;
       document.getElementById('editRentFullCost').value = r.full_cost || 0;
+      document.getElementById('editRentCommission').value = r.commission || 0;
       document.getElementById('editRentStatus').value = r.status || 'Booked';
+      updateEditDuration(); // Update duration display
       new bootstrap.Modal(document.getElementById('editRentalModal')).show();
     } catch (e) { alert(e.message); }
   }
@@ -391,6 +448,7 @@
       rent_end_date: document.getElementById('editRentEnd').value,
       advance: document.getElementById('editRentAdvance').value || 0,
       full_cost: document.getElementById('editRentFullCost').value || 0,
+      commission: document.getElementById('editRentCommission').value || 0,
       status: document.getElementById('editRentStatus').value
     };
     if (!payload.rent_start_date || !payload.rent_end_date) { alert('Dates are required'); return; }
@@ -413,6 +471,35 @@
 
   function formatDate(s) { if (!s) return 'N/A'; return new Date(s).toLocaleDateString(); }
   function fmtNum(n) { const v = parseFloat(n)||0; return v.toFixed(2); }
+  function calculateDays(startDate, endDate) {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  async function onStatusChange(event) {
+    const select = event.target;
+    const rentalId = select.dataset.id;
+    const newStatus = select.value;
+    if (!currentBike || !rentalId) return;
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      // Optionally, update summary or show a success message
+      await loadRentals(currentBike.bike_number);
+    } catch (e) {
+      alert(e.message);
+      // Revert select to previous value on error
+      await loadRentals(currentBike.bike_number);
+    }
+  }
 </script>
 </body>
 </html>
