@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, redirect, url_for
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -177,6 +177,7 @@ def bike_rentals_collection(bike_number):
         rent_end_date = str(data.get('rent_end_date', '')).strip()
         advance = data.get('advance', 0)
         full_cost = data.get('full_cost', 0)
+        commission = data.get('commission', 0)
         status = str(data.get('status', 'Booked')).strip()
 
         if not rent_start_date or not rent_end_date:
@@ -195,6 +196,7 @@ def bike_rentals_collection(bike_number):
             'rent_end_date': rent_end_date,
             'advance': to_number(advance),
             'full_cost': to_number(full_cost),
+            'commission': to_number(commission),
             'status': status
         }
         try:
@@ -225,6 +227,14 @@ def bike_rentals_item(bike_number, rental_id):
         return jsonify(rental), 200
     elif request.method == 'PUT':
         data = request.get_json() or {}
+        # Ensure commission is handled as number
+        if 'commission' in data:
+            def to_number(val):
+                try:
+                    return float(val) if val not in (None, '') else 0
+                except Exception:
+                    return 0
+            data['commission'] = to_number(data['commission'])
         try:
             rentals_ref.child(f"{bike_number}/{rental_id}").update(data)
             return jsonify({'message': 'Rental updated'}), 200
@@ -240,7 +250,68 @@ def bike_rentals_item(bike_number, rental_id):
 # Dashboard for Option 2
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    return render_template('index.html')
+
+@app.route('/expense', methods=['GET', 'POST'])
+def expense():
+    if request.method == 'POST':
+        data = request.form
+        bike_number = str(data.get('bike_number', '')).strip()
+        date = str(data.get('date', '')).strip()
+        remark = str(data.get('remark', '')).strip()
+
+        if not bike_number or not date or not remark:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        expense_data = {
+            "bike_number": bike_number,
+            "date": date,
+            "remark": remark
+        }
+
+        expenses_ref = db.reference("bike_expenses")
+        try:
+            new_ref = expenses_ref.push(expense_data)
+            expense_id = new_ref.key
+            new_ref.update({"id": expense_id})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+        return jsonify({
+            "message": "Expense added successfully",
+            "data": expense_data
+        }), 201
+    else:
+        return render_template('expense.html')
+
+@app.route('/expense/list', methods=['GET'])
+def list_expenses():
+    expenses_ref = db.reference("bike_expenses")
+    expenses = expenses_ref.get() or {}
+    if isinstance(expenses, dict):
+        expenses_list = list(expenses.values())
+    elif isinstance(expenses, list):
+        expenses_list = expenses
+    else:
+        expenses_list = []
+    return jsonify({"expenses": expenses_list}), 200
+
+@app.route('/expense/<expense_id>', methods=['GET'])
+def get_expense(expense_id):
+    expenses_ref = db.reference("bike_expenses")
+    expense = expenses_ref.child(expense_id).get()
+    if expense:
+        return jsonify(expense), 200
+    return jsonify({"error": "Expense not found"}), 404
+
+@app.route('/expense/<expense_id>', methods=['DELETE'])
+def delete_expense(expense_id):
+    expenses_ref = db.reference("bike_expenses")
+    try:
+        expenses_ref.child(expense_id).delete()
+        return jsonify({"message": "Expense deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
