@@ -179,6 +179,9 @@ def bike_rentals_collection(bike_number):
         full_cost = data.get('full_cost', 0)
         commission = data.get('commission', 0)
         status = str(data.get('status', 'Booked')).strip()
+        # New optional renter details
+        renter_name = str(data.get('renter_name', '')).strip()
+        contact_no = str(data.get('contact_no', '')).strip()
 
         if not rent_start_date or not rent_end_date:
             return jsonify({'error': 'rent_start_date and rent_end_date are required'}), 400
@@ -197,7 +200,10 @@ def bike_rentals_collection(bike_number):
             'advance': to_number(advance),
             'full_cost': to_number(full_cost),
             'commission': to_number(commission),
-            'status': status
+            'status': status,
+            # Store optional fields as provided (empty string if not supplied)
+            'renter_name': renter_name,
+            'contact_no': contact_no
         }
         try:
             new_ref = rentals_ref.child(bike_number).push(rental_data)
