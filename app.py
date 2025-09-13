@@ -1,323 +1,537 @@
-from flask import Flask, jsonify, request, render_template, redirect, url_for
-import firebase_admin
-from firebase_admin import credentials, db
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Manager - Multi Rental Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary: #3498db; --secondary: #2c3e50; --success: #2ecc71; --danger: #e74c3c; }
+        body { background: #f8f9fa; }
+        .navbar { background: var(--secondary); }
+        .card { border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
+        .status-badge { padding: .25rem .6rem; border-radius: 1rem; font-size: .8rem; }
+        .status-Booked { background:#3498db; color:#fff; }
+        .status-Active { background:#2980b9; color:#fff; }
+        .status-Returned { background:#2ecc71; color:#fff; }
+        .status-Cancelled { background:#e74c3c; color:#fff; }
+        .table thead th { background:#eef6fd; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fa fa-bicycle me-2"></i>Bike Manager</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"> <span class="navbar-toggler-icon"></span> </button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav ms-auto">
 
-app = Flask(__name__, template_folder='templates')
+                <li class="nav-item"><a class="nav-link active" href="/dashboard"><i class="fa fa-layer-group me-1"></i>Multi-Rental Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/purchase-bike"><i class="fa fa-shopping-cart me-1"></i>Purchase Bike</a></li>
+                <li class="nav-item"><a class="nav-link" href="/expense"><i class="fa fa-money-bill-wave me-1"></i>Expenses</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
 
-# Initialize Firebase Realtime Database
-cred = credentials.Certificate("bike-rendal-manage-firebase-adminsdk-fbsvc-528aeea51d.json")
-firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://bike-rendal-manage-default-rtdb.asia-southeast1.firebasedatabase.app/"   # 👈 replace with your Realtime DB URL
-})
+<div class="container mt-4">
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Bikes</h5>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addBikeModal">
+                            <i class="fa fa-plus me-1"></i>Add Bike
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Bike</label>
+                        <select id="bikeSelect" class="form-select">
+                            <option value="" selected disabled>Choose a bike...</option>
+                        </select>
+                    </div>
+                    <div id="selectedBikeInfo" class="small text-muted"></div>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="mb-2">Summary</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="fw-bold" id="summaryTotal">0</div>
+                            <div class="text-muted small">Rentals</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold" id="summaryActive">0</div>
+                            <div class="text-muted small">Active</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold" id="summaryRevenue">$0</div>
+                            <div class="text-muted small">Revenue</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Rentals for Selected Bike</h5>
+                        <div>
+                            <button id="addRentalBtn" class="btn btn-success btn-sm" disabled data-bs-toggle="modal" data-bs-target="#addRentalModal">
+                                <i class="fa fa-plus me-1"></i>Add Rental
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="rentalsTable">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Renter</th>
+                                    <th>Contact</th>
+                                    <th>Advance</th>
+                                    <th>Full Cost</th>
+                                    <th>Commission</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="6" class="text-center text-muted">Select a bike to view rentals</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-rentals_ref = db.reference("bike_rentals")
-bikes_ref = db.reference("bikes")
+<!-- Add Bike Modal -->
+<div class="modal fade" id="addBikeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Bike</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addBikeForm">
+          <div class="mb-3">
+            <label class="form-label">Bike Number *</label>
+            <input type="text" class="form-control" id="newBikeNumber" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Bike Name *</label>
+            <input type="text" class="form-control" id="newBikeName" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="submitAddBike">Add Bike</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<!-- Add Rental Modal -->
+<div class="modal fade" id="addRentalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Rental</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addRentalForm">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Start Date *</label>
+              <input type="date" class="form-control" id="rentStart" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">End Date *</label>
+              <input type="date" class="form-control" id="rentEnd" required>
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-4">
+              <label class="form-label">Advance</label>
+              <input type="number" class="form-control" id="rentAdvance" value="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Full Cost</label>
+              <input type="number" class="form-control" id="rentFullCost" value="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Commission</label>
+              <input type="number" class="form-control" id="rentCommission" value="0">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="rentStatus">
+              <option>Booked</option>
+              <option>Active</option>
+              <option>Returned</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+          <!-- New optional renter details -->
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label">Renter Name (optional)</label>
+              <input type="text" class="form-control" id="rentRenterName" placeholder="John Doe">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Contact No (optional)</label>
+              <input type="text" class="form-control" id="rentContactNo" placeholder="+1 555 0100">
+            </div>
+          </div>
+          <div class="mt-2">
+            <small>Duration: <span id="addDuration">0 days</span></small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-success" id="submitAddRental">Add Rental</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<!-- Edit Rental Modal -->
+<div class="modal fade" id="editRentalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Rental</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editRentalForm">
+          <input type="hidden" id="editRentalId">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Start Date *</label>
+              <input type="date" class="form-control" id="editRentStart" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">End Date *</label>
+              <input type="date" class="form-control" id="editRentEnd" required>
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-4">
+              <label class="form-label">Advance</label>
+              <input type="number" class="form-control" id="editRentAdvance" value="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Full Cost</label>
+              <input type="number" class="form-control" id="editRentFullCost" value="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Commission</label>
+              <input type="number" class="form-control" id="editRentCommission" value="0">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="editRentStatus">
+              <option>Booked</option>
+              <option>Active</option>
+              <option>Returned</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+          <!-- New optional renter details for edit -->
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label">Renter Name (optional)</label>
+              <input type="text" class="form-control" id="editRenterName" placeholder="John Doe">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Contact No (optional)</label>
+              <input type="text" class="form-control" id="editContactNo" placeholder="+1 555 0100">
+            </div>
+          </div>
+          <div class="mt-2">
+            <small>Duration: <span id="editDuration">0 days</span></small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="submitEditRental">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const API_BASE = '';
+  const bikeSelect = document.getElementById('bikeSelect');
+  const selectedBikeInfo = document.getElementById('selectedBikeInfo');
+  const addRentalBtn = document.getElementById('addRentalBtn');
+  const rentalsTableBody = document.querySelector('#rentalsTable tbody');
+  const summaryTotal = document.getElementById('summaryTotal');
+  const summaryActive = document.getElementById('summaryActive');
+  const summaryRevenue = document.getElementById('summaryRevenue');
 
-# ✅ Serve frontend
-@app.route('/')
-def index():
-    return render_template('index.html')
+  let currentBike = null;
 
-# New route for purchase bike
-@app.route('/purchase-bike', methods=['GET', 'POST'])
-def purchase_bike():
-    if request.method == 'POST':
-        data = request.form
+  document.addEventListener('DOMContentLoaded', () => {
+    loadBikes();
+    document.getElementById('submitAddBike').addEventListener('click', onAddBike);
+    document.getElementById('submitAddRental').addEventListener('click', onAddRental);
+    document.getElementById('submitEditRental').addEventListener('click', onEditRental);
+    bikeSelect.addEventListener('change', onBikeChange);
 
-        bike_name = str(data.get('bike_name', '')).strip()
-        bike_number = str(data.get('bike_number', '')).strip()
-        previous_owner_name = str(data.get('previous_owner_name', '')).strip()
-        date = str(data.get('date', '')).strip()
-        purchase_price = data.get('purchase_price', 0)
-        condition = str(data.get('condition', '')).strip()
+    // Add event listeners to update duration on date change in Add Rental modal
+    document.getElementById('rentStart').addEventListener('change', updateAddDuration);
+    document.getElementById('rentEnd').addEventListener('change', updateAddDuration);
 
-        # Validation
-        if not bike_name or not bike_number or not previous_owner_name or not date or not purchase_price or not condition:
-            return jsonify({"error": "Missing required fields"}), 400
+    // Add event listeners to update duration on date change in Edit Rental modal
+    document.getElementById('editRentStart').addEventListener('change', updateEditDuration);
+    document.getElementById('editRentEnd').addEventListener('change', updateEditDuration);
+  });
 
-        # Normalize numeric fields
-        def to_number(val):
-            try:
-                return float(val) if val not in (None, "") else 0
-            except Exception:
-                return 0
+  function updateAddDuration() {
+    const start = document.getElementById('rentStart').value;
+    const end = document.getElementById('rentEnd').value;
+    const durationSpan = document.getElementById('addDuration');
+    const days = calculateDays(start, end);
+    durationSpan.textContent = `${days} days`;
+  }
 
-        purchase_data = {
-            "bike_name": bike_name,
-            "bike_number": bike_number,
-            "previous_owner_name": previous_owner_name,
-            "date": date,
-            "purchase_price": to_number(purchase_price),
-            "condition": condition
-        }
+  function updateEditDuration() {
+    const start = document.getElementById('editRentStart').value;
+    const end = document.getElementById('editRentEnd').value;
+    const durationSpan = document.getElementById('editDuration');
+    const days = calculateDays(start, end);
+    durationSpan.textContent = `${days} days`;
+  }
 
-        # Save data in Realtime DB (bike_number as key)
-        purchases_ref = db.reference("bike_purchases")
-        try:
-            purchases_ref.child(bike_number).set(purchase_data)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+  async function loadBikes() {
+    try {
+      const res = await fetch(`${API_BASE}/bikes`);
+      const data = await res.json();
+      renderBikeOptions(data.bikes || []);
+    } catch (e) { alert('Failed to load bikes'); }
+  }
 
-        return jsonify({
-            "message": "Bike purchase details added successfully",
-            "data": purchase_data
-        }), 201
+  function renderBikeOptions(bikes) {
+    bikeSelect.innerHTML = '<option value="" disabled selected>Choose a bike...</option>';
+    bikes.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.bike_number;
+      opt.textContent = `${b.bike_number} - ${b.bike_name}`;
+      opt.dataset.name = b.bike_name || '';
+      bikeSelect.appendChild(opt);
+    });
+  }
 
-    else:  # GET → render the purchase bike form
-        return render_template('purchase_bike.html')
+  async function onBikeChange() {
+    const number = bikeSelect.value;
+    const name = bikeSelect.options[bikeSelect.selectedIndex].dataset.name || '';
+    currentBike = { bike_number: number, bike_name: name };
+    selectedBikeInfo.textContent = `Selected: ${number} ${name ? '(' + name + ')' : ''}`;
+    addRentalBtn.disabled = false;
+    await loadRentals(number);
+  }
 
-# New API route to get list of purchase bikes
-@app.route('/purchase-bike/list', methods=['GET'])
-def list_purchase_bikes():
-    purchases_ref = db.reference("bike_purchases")
-    purchases = purchases_ref.get() or {}
-    if isinstance(purchases, dict):
-        purchases_list = list(purchases.values())
-    elif isinstance(purchases, list):
-        purchases_list = purchases
-    else:
-        purchases_list = []
-    return jsonify({"purchases": purchases_list}), 200
+  async function loadRentals(bikeNumber) {
+    rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Loading...</td></tr>';
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${bikeNumber}/rentals`);
+      if (!res.ok) throw new Error('Load rentals failed');
+      const data = await res.json();
+      renderRentals(data.rentals || []);
+    } catch (e) {
+      rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-danger text-center">Failed to load rentals</td></tr>';
+    }
+  }
 
-# New API route to get a single purchase bike by bike_number
-@app.route('/purchase-bike/<bike_number>', methods=['GET'])
-def get_purchase_bike(bike_number):
-    purchases_ref = db.reference("bike_purchases")
-    purchase = purchases_ref.child(bike_number).get()
-    if purchase:
-        return jsonify(purchase), 200
-    return jsonify({"error": "Purchase bike not found"}), 404
+  function renderRentals(rentals) {
+    if (!rentals.length) {
+      rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No rentals yet</td></tr>';
+      updateSummary([]);
+      return;
+    }
+    rentalsTableBody.innerHTML = '';
+    rentals.forEach(r => {
+      const days = calculateDays(r.rent_start_date, r.rent_end_date);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDate(r.rent_start_date)} - ${formatDate(r.rent_end_date)} (${days} days)</td>
+        <td>${(r.renter_name || '').toString()}</td>
+        <td>${(r.contact_no || '').toString()}</td>
+        <td>$${fmtNum(r.advance)}</td>
+        <td>$${fmtNum(r.full_cost)}</td>
+        <td>$${fmtNum(r.commission || 0)}</td>
+        <td>
+          <select class="form-select form-select-sm status-select" data-id="${r.rental_id}">
+            <option value="Booked" ${r.status === 'Booked' ? 'selected' : ''}>Booked</option>
+            <option value="Active" ${r.status === 'Active' ? 'selected' : ''}>Active</option>
+            <option value="Returned" ${r.status === 'Returned' ? 'selected' : ''}>Returned</option>
+            <option value="Cancelled" ${r.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+          </select>
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${r.rental_id}"><i class="fa fa-edit"></i></button>
+          <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${r.rental_id}"><i class="fa fa-trash"></i></button>
+        </td>`;
+      rentalsTableBody.appendChild(tr);
+    });
+    rentalsTableBody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', onRentalAction));
+    rentalsTableBody.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', onStatusChange));
+    updateSummary(rentals);
+  }
 
-# New API route to update a purchase bike
-@app.route('/purchase-bike/<bike_number>', methods=['PUT'])
-def update_purchase_bike(bike_number):
-    data = request.get_json()
-    purchases_ref = db.reference("bike_purchases")
-    try:
-        purchases_ref.child(bike_number).update(data)
-        return jsonify({"message": "Purchase bike updated successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+  function updateSummary(rentals) {
+    summaryTotal.textContent = rentals.length;
+    summaryActive.textContent = rentals.filter(r => r.status === 'Active').length;
+    const revenue = rentals.reduce((s, r) => s + (parseFloat(r.full_cost) || 0), 0);
+    summaryRevenue.textContent = `$${revenue.toFixed(2)}`;
+    const commission = rentals.reduce((s, r) => s + (parseFloat(r.commission) || 0), 0);
+    // Optionally add to summary, but since summary has only 3 cols, maybe add to revenue or create new
+    // For now, append to revenue text
+    summaryRevenue.textContent = `$${revenue.toFixed(2)} (Comm: $${commission.toFixed(2)})`;
+  }
 
-# New API route to delete a purchase bike
-@app.route('/purchase-bike/<bike_number>', methods=['DELETE'])
-def delete_purchase_bike(bike_number):
-    purchases_ref = db.reference("bike_purchases")
-    try:
-        purchases_ref.child(bike_number).delete()
-        return jsonify({"message": "Purchase bike deleted successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+  async function onAddBike() {
+    const bike_number = document.getElementById('newBikeNumber').value.trim();
+    const bike_name = document.getElementById('newBikeName').value.trim();
+    if (!bike_number || !bike_name) { alert('Both fields are required'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/bikes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bike_number, bike_name }) });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Add bike failed'); }
+      document.getElementById('addBikeForm').reset();
+      bootstrap.Modal.getInstance(document.getElementById('addBikeModal')).hide();
+      await loadBikes();
+      // Auto-select the newly added bike
+      bikeSelect.value = bike_number; bikeSelect.dispatchEvent(new Event('change'));
+    } catch (e) { alert(e.message); }
+  }
 
+  async function onAddRental() {
+    if (!currentBike) return;
+    const payload = {
+      rent_start_date: document.getElementById('rentStart').value,
+      rent_end_date: document.getElementById('rentEnd').value,
+      advance: document.getElementById('rentAdvance').value || 0,
+      full_cost: document.getElementById('rentFullCost').value || 0,
+      commission: document.getElementById('rentCommission').value || 0,
+      status: document.getElementById('rentStatus').value,
+      bike_name: currentBike.bike_name || '',
+      renter_name: document.getElementById('rentRenterName').value || '',
+      contact_no: document.getElementById('rentContactNo').value || ''
+    };
+    if (!payload.rent_start_date || !payload.rent_end_date) { alert('Dates are required'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Add rental failed'); }
+      document.getElementById('addRentalForm').reset();
+      bootstrap.Modal.getInstance(document.getElementById('addRentalModal')).hide();
+      await loadRentals(currentBike.bike_number);
+    } catch (e) { alert(e.message); }
+  }
 
-# ====== New: Bikes registry and per-bike rentals (Option 2) ======
-@app.route('/bikes', methods=['GET', 'POST'])
-def bikes_collection():
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        bike_number = str(data.get('bike_number', '')).strip()
-        bike_name = str(data.get('bike_name', '')).strip()
-        if not bike_number or not bike_name:
-            return jsonify({'error': 'bike_number and bike_name are required'}), 400
-        try:
-            bikes_ref.child(bike_number).set({
-                'bike_number': bike_number,
-                'bike_name': bike_name
-            })
-            return jsonify({'message': 'Bike created', 'data': {'bike_number': bike_number, 'bike_name': bike_name}}), 201
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    else:
-        bikes = bikes_ref.get() or {}
-        if isinstance(bikes, dict):
-            bikes_list = list(bikes.values())
-        elif isinstance(bikes, list):
-            bikes_list = bikes
-        else:
-            bikes_list = []
-        return jsonify({'bikes': bikes_list}), 200
+  function onRentalAction(ev) {
+    const btn = ev.currentTarget;
+    const action = btn.dataset.action;
+    const rentalId = btn.dataset.id;
+    if (action === 'delete') return deleteRental(rentalId);
+    if (action === 'edit') return openEditRental(rentalId);
+  }
 
-@app.route('/bikes/<bike_number>', methods=['GET', 'PUT', 'DELETE'])
-def bikes_item(bike_number):
-    if request.method == 'GET':
-        bike = bikes_ref.child(bike_number).get()
-        if not bike:
-            return jsonify({'error': 'Bike not found'}), 404
-        return jsonify(bike), 200
-    elif request.method == 'PUT':
-        data = request.get_json() or {}
-        try:
-            bikes_ref.child(bike_number).update(data)
-            return jsonify({'message': 'Bike updated'}), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    else:  # DELETE
-        try:
-            # Optional: cascade delete rentals for this bike
-            rentals_ref.child(bike_number).delete()
-            bikes_ref.child(bike_number).delete()
-            return jsonify({'message': 'Bike and its rentals deleted'}), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+  async function openEditRental(rentalId) {
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`);
+      if (!res.ok) throw new Error('Load rental failed');
+      const r = await res.json();
+      document.getElementById('editRentalId').value = r.rental_id;
+      document.getElementById('editRentStart').value = r.rent_start_date || '';
+      document.getElementById('editRentEnd').value = r.rent_end_date || '';
+      document.getElementById('editRentAdvance').value = r.advance || 0;
+      document.getElementById('editRentFullCost').value = r.full_cost || 0;
+      document.getElementById('editRentCommission').value = r.commission || 0;
+      document.getElementById('editRentStatus').value = r.status || 'Booked';
+      document.getElementById('editRenterName').value = r.renter_name || '';
+      document.getElementById('editContactNo').value = r.contact_no || '';
+      updateEditDuration(); // Update duration display
+      new bootstrap.Modal(document.getElementById('editRentalModal')).show();
+    } catch (e) { alert(e.message); }
+  }
 
-# Rentals under a specific bike
-@app.route('/bikes/<bike_number>/rentals', methods=['GET', 'POST'])
-def bike_rentals_collection(bike_number):
-    # Ensure bike exists
-    if not bikes_ref.child(bike_number).get():
-        return jsonify({'error': 'Bike not found'}), 404
+  async function onEditRental() {
+    const rentalId = document.getElementById('editRentalId').value;
+    const payload = {
+      rent_start_date: document.getElementById('editRentStart').value,
+      rent_end_date: document.getElementById('editRentEnd').value,
+      advance: document.getElementById('editRentAdvance').value || 0,
+      full_cost: document.getElementById('editRentFullCost').value || 0,
+      commission: document.getElementById('editRentCommission').value || 0,
+      status: document.getElementById('editRentStatus').value,
+      renter_name: document.getElementById('editRenterName').value || '',
+      contact_no: document.getElementById('editContactNo').value || ''
+    };
+    if (!payload.rent_start_date || !payload.rent_end_date) { alert('Dates are required'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Update rental failed');
+      bootstrap.Modal.getInstance(document.getElementById('editRentalModal')).hide();
+      await loadRentals(currentBike.bike_number);
+    } catch (e) { alert(e.message); }
+  }
 
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        bike_name = str(data.get('bike_name', '')).strip()  # optional, for convenience
-        rent_start_date = str(data.get('rent_start_date', '')).strip()
-        rent_end_date = str(data.get('rent_end_date', '')).strip()
-        advance = data.get('advance', 0)
-        full_cost = data.get('full_cost', 0)
-        commission = data.get('commission', 0)
-        status = str(data.get('status', 'Booked')).strip()
-        # New optional renter details
-        renter_name = str(data.get('renter_name', '')).strip()
-        contact_no = str(data.get('contact_no', '')).strip()
+  async function deleteRental(rentalId) {
+    if (!confirm('Delete this rental?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      await loadRentals(currentBike.bike_number);
+    } catch (e) { alert(e.message); }
+  }
 
-        if not rent_start_date or not rent_end_date:
-            return jsonify({'error': 'rent_start_date and rent_end_date are required'}), 400
+  function formatDate(s) { if (!s) return 'N/A'; return new Date(s).toLocaleDateString(); }
+  function fmtNum(n) { const v = parseFloat(n)||0; return v.toFixed(2); }
+  function calculateDays(startDate, endDate) {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
 
-        def to_number(val):
-            try:
-                return float(val) if val not in (None, '') else 0
-            except Exception:
-                return 0
-
-        rental_data = {
-            'bike_number': bike_number,
-            'bike_name': bike_name,
-            'rent_start_date': rent_start_date,
-            'rent_end_date': rent_end_date,
-            'advance': to_number(advance),
-            'full_cost': to_number(full_cost),
-            'commission': to_number(commission),
-            'status': status,
-            # Store optional fields as provided (empty string if not supplied)
-            'renter_name': renter_name,
-            'contact_no': contact_no
-        }
-        try:
-            new_ref = rentals_ref.child(bike_number).push(rental_data)
-            rental_id = new_ref.key
-            # Save id inside the record for convenience
-            new_ref.update({'rental_id': rental_id})
-            rental_data['rental_id'] = rental_id
-            return jsonify({'message': 'Rental created', 'data': rental_data}), 201
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    else:
-        rentals = rentals_ref.child(bike_number).get() or {}
-        if isinstance(rentals, dict):
-            rentals_list = list(rentals.values())
-        elif isinstance(rentals, list):
-            rentals_list = rentals
-        else:
-            rentals_list = []
-        return jsonify({'rentals': rentals_list}), 200
-
-@app.route('/bikes/<bike_number>/rentals/<rental_id>', methods=['GET', 'PUT', 'DELETE'])
-def bike_rentals_item(bike_number, rental_id):
-    if request.method == 'GET':
-        rental = rentals_ref.child(f"{bike_number}/{rental_id}").get()
-        if not rental:
-            return jsonify({'error': 'Rental not found'}), 404
-        return jsonify(rental), 200
-    elif request.method == 'PUT':
-        data = request.get_json() or {}
-        # Ensure commission is handled as number
-        if 'commission' in data:
-            def to_number(val):
-                try:
-                    return float(val) if val not in (None, '') else 0
-                except Exception:
-                    return 0
-            data['commission'] = to_number(data['commission'])
-        try:
-            rentals_ref.child(f"{bike_number}/{rental_id}").update(data)
-            return jsonify({'message': 'Rental updated'}), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    else:  # DELETE
-        try:
-            rentals_ref.child(f"{bike_number}/{rental_id}").delete()
-            return jsonify({'message': 'Rental deleted'}), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-# Dashboard for Option 2
-@app.route('/dashboard')
-def dashboard():
-    return render_template('index.html')
-
-@app.route('/expense', methods=['GET', 'POST'])
-def expense():
-    if request.method == 'POST':
-        data = request.form
-        bike_number = str(data.get('bike_number', '')).strip()
-        date = str(data.get('date', '')).strip()
-        remark = str(data.get('remark', '')).strip()
-
-        if not bike_number or not date or not remark:
-            return jsonify({"error": "Missing required fields"}), 400
-
-        expense_data = {
-            "bike_number": bike_number,
-            "date": date,
-            "remark": remark
-        }
-
-        expenses_ref = db.reference("bike_expenses")
-        try:
-            new_ref = expenses_ref.push(expense_data)
-            expense_id = new_ref.key
-            new_ref.update({"id": expense_id})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-        return jsonify({
-            "message": "Expense added successfully",
-            "data": expense_data
-        }), 201
-    else:
-        return render_template('expense.html')
-
-@app.route('/expense/list', methods=['GET'])
-def list_expenses():
-    expenses_ref = db.reference("bike_expenses")
-    expenses = expenses_ref.get() or {}
-    if isinstance(expenses, dict):
-        expenses_list = list(expenses.values())
-    elif isinstance(expenses, list):
-        expenses_list = expenses
-    else:
-        expenses_list = []
-    return jsonify({"expenses": expenses_list}), 200
-
-@app.route('/expense/<expense_id>', methods=['GET'])
-def get_expense(expense_id):
-    expenses_ref = db.reference("bike_expenses")
-    expense = expenses_ref.child(expense_id).get()
-    if expense:
-        return jsonify(expense), 200
-    return jsonify({"error": "Expense not found"}), 404
-
-@app.route('/expense/<expense_id>', methods=['DELETE'])
-def delete_expense(expense_id):
-    expenses_ref = db.reference("bike_expenses")
-    try:
-        expenses_ref.child(expense_id).delete()
-        return jsonify({"message": "Expense deleted successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
+  async function onStatusChange(event) {
+    const select = event.target;
+    const rentalId = select.dataset.id;
+    const newStatus = select.value;
+    if (!currentBike || !rentalId) return;
+    try {
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      // Optionally, update summary or show a success message
+      await loadRentals(currentBike.bike_number);
+    } catch (e) {
+      alert(e.message);
+      // Revert select to previous value on error
+      await loadRentals(currentBike.bike_number);
+    }
+  }
+</script>
+</body>
+</html>
