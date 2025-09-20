@@ -1,6 +1,9 @@
-from flask import Flask, jsonify, request, render_template, redirect, url_for
+from flask import Flask, jsonify, request, render_template, redirect, url_for, Response
 import firebase_admin
 from firebase_admin import credentials, db
+import pandas as pd
+import openpyxl
+import io
 
 app = Flask(__name__, template_folder='templates')
 
@@ -265,14 +268,27 @@ def expense():
         bike_number = str(data.get('bike_number', '')).strip()
         date = str(data.get('date', '')).strip()
         remark = str(data.get('remark', '')).strip()
+        amount = data.get('amount', 0)
 
         if not bike_number or not date or not remark:
             return jsonify({"error": "Missing required fields"}), 400
 
+        # Validate amount
+        def to_number(val):
+            try:
+                return float(val) if val not in (None, "") else 0
+            except Exception:
+                return 0
+
+        amount_value = to_number(amount)
+        if amount_value <= 0:
+            return jsonify({"error": "Amount must be a positive number"}), 400
+
         expense_data = {
             "bike_number": bike_number,
             "date": date,
-            "remark": remark
+            "remark": remark,
+            "amount": amount_value
         }
 
         expenses_ref = db.reference("bike_expenses")
@@ -316,6 +332,304 @@ def delete_expense(expense_id):
     try:
         expenses_ref.child(expense_id).delete()
         return jsonify({"message": "Expense deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# New route for generating bike reports
+@app.route('/report', methods=['GET'])
+def generate_report():
+    try:
+        # Get all data from Firebase
+        bikes_ref = db.reference("bikes")
+        purchases_ref = db.reference("bike_purchases")
+        rentals_ref = db.reference("bike_rentals")
+        expenses_ref = db.reference("bike_expenses")
+
+        bikes = bikes_ref.get() or {}
+        purchases = purchases_ref.get() or {}
+        rentals = rentals_ref.get() or {}
+        expenses = expenses_ref.get() or {}
+
+        report_data = []
+
+        # Process each bike
+        for bike_number, bike_data in bikes.items():
+            # Get purchase data for this bike
+            purchase_data = purchases.get(bike_number, {})
+            purchase_price = purchase_data.get('purchase_price', 0)
+
+            # Calculate total rental earnings for this bike
+            bike_rentals = rentals.get(bike_number, {})
+            total_rental_earning = 0
+            if isinstance(bike_rentals, dict):
+                total_rental_earning = sum(
+                    float(rental.get('full_cost', 0))
+                    for rental in bike_rentals.values()
+                )
+
+            # Calculate total expenses for this bike
+            bike_expenses = []
+            if isinstance(expenses, dict):
+                bike_expenses = [
+                    expense for expense in expenses.values()
+                    if expense.get('bike_number') == bike_number
+                ]
+
+            total_expenses = sum(float(expense.get('amount', 0)) for expense in bike_expenses)
+
+            # Add to report
+            report_data.append({
+                'bike_number': bike_number,
+                'bike_name': bike_data.get('bike_name', purchase_data.get('bike_name', 'Unknown')),
+                'purchase_price': purchase_price,
+                'total_rental_earning': total_rental_earning,
+                'total_expenses': total_expenses,
+                'net_profit': total_rental_earning - total_expenses - purchase_price
+            })
+
+        return jsonify({"report": report_data}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# New route for downloading bike reports as Excel
+@app.route('/report/download', methods=['GET'])
+def download_report():
+    try:
+        # Get all data from Firebase
+        bikes_ref = db.reference("bikes")
+        purchases_ref = db.reference("bike_purchases")
+        rentals_ref = db.reference("bike_rentals")
+        expenses_ref = db.reference("bike_expenses")
+
+        bikes = bikes_ref.get() or {}
+        purchases = purchases_ref.get() or {}
+        rentals = rentals_ref.get() or {}
+        expenses = expenses_ref.get() or {}
+
+        # Prepare data for DataFrame
+        report_data = []
+
+        # Process each bike
+        for bike_number, bike_data in bikes.items():
+            # Get purchase data for this bike
+            purchase_data = purchases.get(bike_number, {})
+            purchase_price = purchase_data.get('purchase_price', 0)
+
+            # Calculate total rental earnings for this bike
+            bike_rentals = rentals.get(bike_number, {})
+            total_rental_earning = 0
+            if isinstance(bike_rentals, dict):
+                total_rental_earning = sum(
+                    float(rental.get('full_cost', 0))
+                    for rental in bike_rentals.values()
+                )
+
+            # Calculate total expenses for this bike
+            bike_expenses = []
+            if isinstance(expenses, dict):
+                bike_expenses = [
+                    expense for expense in expenses.values()
+                    if expense.get('bike_number') == bike_number
+                ]
+
+            total_expenses = sum(float(expense.get('amount', 0)) for expense in bike_expenses)
+            net_profit = total_rental_earning - total_expenses - purchase_price
+
+            # Add to report data
+            report_data.append({
+                'Bike Number': bike_number,
+                'Bike Name': bike_data.get('bike_name', purchase_data.get('bike_name', 'Unknown')),
+                'Purchase Price ($)': purchase_price,
+                'Total Rental Earning ($)': total_rental_earning,
+                'Total Expenses ($)': total_expenses,
+                'Net Profit ($)': net_profit
+            })
+
+        # Create DataFrame
+        df = pd.DataFrame(report_data)
+
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Bike Report', index=False)
+
+            # Get the workbook and worksheet
+            workbook = writer.book
+            worksheet = writer.sheets['Bike Report']
+
+            # Format the header row
+            header_font = openpyxl.styles.Font(bold=True, color="FFFFFF")
+            header_fill = openpyxl.styles.PatternFill(start_color="4CAF50", end_color="4CAF50", fill_type="solid")
+
+            for col_num, column_title in enumerate(df.columns, 1):
+                cell = worksheet.cell(row=1, column=col_num)
+                cell.font = header_font
+                cell.fill = header_fill
+
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 30)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+
+        output.seek(0)
+
+        # Prepare response
+        response = Response(
+            output.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={
+                'Content-Disposition': 'attachment; filename=bike_report.xlsx'
+            }
+        )
+
+        return response
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# New route for dashboard graph data
+@app.route('/dashboard/graph-data', methods=['GET'])
+def get_graph_data():
+    try:
+        # Get all data from Firebase
+        bikes_ref = db.reference("bikes")
+        purchases_ref = db.reference("bike_purchases")
+        rentals_ref = db.reference("bike_rentals")
+        expenses_ref = db.reference("bike_expenses")
+
+        bikes = bikes_ref.get() or {}
+        purchases = purchases_ref.get() or {}
+        rentals = rentals_ref.get() or {}
+        expenses = expenses_ref.get() or {}
+
+        # 1. Bike Performance Comparison (Bar Chart)
+        bike_performance = []
+        for bike_number, bike_data in bikes.items():
+            purchase_data = purchases.get(bike_number, {})
+            purchase_price = purchase_data.get('purchase_price', 0)
+
+            # Calculate total rental earnings for this bike
+            bike_rentals = rentals.get(bike_number, {})
+            total_rental_earning = 0
+            if isinstance(bike_rentals, dict):
+                total_rental_earning = sum(
+                    float(rental.get('full_cost', 0))
+                    for rental in bike_rentals.values()
+                )
+
+            # Calculate total expenses for this bike
+            bike_expenses = []
+            if isinstance(expenses, dict):
+                bike_expenses = [
+                    expense for expense in expenses.values()
+                    if expense.get('bike_number') == bike_number
+                ]
+
+            total_expenses = sum(float(expense.get('amount', 0)) for expense in bike_expenses)
+            net_profit = total_rental_earning - total_expenses - purchase_price
+
+            bike_performance.append({
+                'bike_number': bike_number,
+                'bike_name': bike_data.get('bike_name', purchase_data.get('bike_name', 'Unknown')),
+                'purchase_price': purchase_price,
+                'rental_earning': total_rental_earning,
+                'expenses': total_expenses,
+                'net_profit': net_profit
+            })
+
+        # 2. Revenue Trends (Line Chart) - Monthly data for last 6 months
+        revenue_trends = []
+        from datetime import datetime, timedelta
+        import calendar
+
+        for i in range(5, -1, -1):  # Last 6 months
+            date = datetime.now() - timedelta(days=i*30)
+            month_name = calendar.month_name[date.month]
+            year = date.year
+
+            monthly_rentals = 0
+            monthly_expenses = 0
+
+            # Calculate monthly rentals
+            if isinstance(rentals, dict):
+                for bike_rentals_data in rentals.values():
+                    if isinstance(bike_rentals_data, dict):
+                        for rental in bike_rentals_data.values():
+                            if isinstance(rental, dict):
+                                rental_date = rental.get('rent_start_date', '')
+                                if rental_date:
+                                    try:
+                                        rental_datetime = datetime.strptime(rental_date, '%Y-%m-%d')
+                                        if rental_datetime.year == year and rental_datetime.month == date.month:
+                                            monthly_rentals += float(rental.get('full_cost', 0))
+                                    except:
+                                        pass
+
+            # Calculate monthly expenses
+            if isinstance(expenses, dict):
+                for expense in expenses.values():
+                    if isinstance(expense, dict):
+                        expense_date = expense.get('date', '')
+                        if expense_date:
+                            try:
+                                expense_datetime = datetime.strptime(expense_date, '%Y-%m-%d')
+                                if expense_datetime.year == year and expense_datetime.month == date.month:
+                                    monthly_expenses += float(expense.get('amount', 0))
+                            except:
+                                pass
+
+            revenue_trends.append({
+                'month': f"{month_name} {year}",
+                'rentals': monthly_rentals,
+                'expenses': monthly_expenses,
+                'profit': monthly_rentals - monthly_expenses
+            })
+
+        # 3. Rental Status Distribution (Pie Chart)
+        status_counts = {'Booked': 0, 'Active': 0, 'Returned': 0, 'Cancelled': 0}
+        if isinstance(rentals, dict):
+            for bike_rentals_data in rentals.values():
+                if isinstance(bike_rentals_data, dict):
+                    for rental in bike_rentals_data.values():
+                        if isinstance(rental, dict):
+                            status = rental.get('status', 'Unknown')
+                            if status in status_counts:
+                                status_counts[status] += 1
+
+        # 4. Expense Breakdown by Bike (Doughnut Chart)
+        expense_breakdown = []
+        for bike_number, bike_data in bikes.items():
+            bike_expenses = []
+            if isinstance(expenses, dict):
+                bike_expenses = [
+                    expense for expense in expenses.values()
+                    if expense.get('bike_number') == bike_number
+                ]
+
+            total_expenses = sum(float(expense.get('amount', 0)) for expense in bike_expenses)
+            if total_expenses > 0:
+                expense_breakdown.append({
+                    'bike_number': bike_number,
+                    'bike_name': bike_data.get('bike_name', purchase_data.get('bike_name', 'Unknown')),
+                    'expenses': total_expenses
+                })
+
+        return jsonify({
+            "bike_performance": bike_performance,
+            "revenue_trends": revenue_trends,
+            "rental_status": status_counts,
+            "expense_breakdown": expense_breakdown
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
