@@ -2,3 +2,5 @@ flask
 firebase-admin
 Flask
 gunicorn
+openpyxl
+pandas
