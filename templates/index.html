@@ -6,30 +6,254 @@
     <title>Bike Manager - Multi Rental Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #3498db; --secondary: #2c3e50; --success: #2ecc71; --danger: #e74c3c; }
-        body { background: #f8f9fa; }
-        .navbar { background: var(--secondary); }
-        .card { border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
-        .status-badge { padding: .25rem .6rem; border-radius: 1rem; font-size: .8rem; }
-        .status-Booked { background:#3498db; color:#fff; }
-        .status-Active { background:#2980b9; color:#fff; }
-        .status-Returned { background:#2ecc71; color:#fff; }
-        .status-Cancelled { background:#e74c3c; color:#fff; }
-        .table thead th { background:#eef6fd; }
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #2c3e50;
+            --secondary-light: #3c546c;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0,0,0,.08);
+        }
+        
+        body {
+            background: var(--light-bg);
+            padding-bottom: 2rem;
+        }
+        
+        .navbar {
+            background: var(--secondary);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,0,0,.12);
+        }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid rgba(0,0,0,.05);
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+        }
+        
+        .status-badge {
+            padding: .25rem .6rem;
+            border-radius: 1rem;
+            font-size: .8rem;
+            font-weight: 500;
+        }
+        
+        .status-Booked { background: var(--primary); color: #fff; }
+        .status-Active { background: var(--primary-dark); color: #fff; }
+        .status-Returned { background: var(--success); color: #fff; }
+        .status-Cancelled { background: var(--danger); color: #fff; }
+        
+        .table thead th {
+            background: #eef6fd;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.75rem;
+        }
+        
+        .table td {
+            padding: 0.75rem;
+            vertical-align: middle;
+        }
+        
+        .btn {
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .summary-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+        
+        .summary-card .label {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+            
+            .card {
+                border-radius: 10px;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .table-responsive {
+                border-radius: 8px;
+                overflow: hidden;
+                border: 1px solid #dee2e6;
+            }
+            
+            .table thead {
+                display: none;
+            }
+            
+            .table, .table tbody, .table tr, .table td {
+                display: block;
+                width: 100%;
+            }
+            
+            .table tr {
+                margin-bottom: 1rem;
+                border-bottom: 1px solid #dee2e6;
+                padding: 0.75rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,.05);
+            }
+            
+            .table td {
+                text-align: right;
+                padding: 0.5rem;
+                position: relative;
+                padding-left: 50%;
+                border: none;
+            }
+            
+            .table td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0.5rem;
+                width: 45%;
+                padding-right: 0.5rem;
+                text-align: left;
+                font-weight: 600;
+                color: var(--secondary);
+                font-size: 0.8rem;
+            }
+            
+            .table .actions-cell {
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+            }
+            
+            .table .actions-cell:before {
+                display: none;
+            }
+            
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            
+            .modal-content {
+                border-radius: 12px;
+            }
+            
+            .navbar-collapse {
+                background: var(--secondary-light);
+                padding: 1rem;
+                border-radius: 0 0 8px 8px;
+                margin-top: 0.5rem;
+            }
+            
+            .summary-card .value {
+                font-size: 1.25rem;
+            }
+            
+            .btn-group-mobile {
+                display: flex;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+            
+            .btn-group-mobile .btn {
+                flex: 1;
+            }
+        }
+        
+        /* Improved form styles */
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--secondary);
+        }
+        
+        .form-control, .form-select {
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            border-color: var(--primary);
+        }
+        
+        /* Animation for better UX */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease forwards;
+        }
+        
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 1055;
+        }
+        
+        .toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+            border-left: 4px solid var(--primary);
+        }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container">
         <a class="navbar-brand" href="#"><i class="fa fa-bicycle me-2"></i>Bike Manager</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"> <span class="navbar-toggler-icon"></span> </button>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
         <div class="collapse navbar-collapse" id="nav">
             <ul class="navbar-nav ms-auto">
-
                 <li class="nav-item"><a class="nav-link active" href="/dashboard"><i class="fa fa-layer-group me-1"></i>Multi-Rental Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="/purchase-bike"><i class="fa fa-shopping-cart me-1"></i>Purchase Bike</a></li>
                 <li class="nav-item"><a class="nav-link" href="/expense"><i class="fa fa-money-bill-wave me-1"></i>Expenses</a></li>
+                <li class="nav-item"><button class="btn btn-outline-light btn-sm ms-2" onclick="downloadReport()"><i class="fa fa-file-excel me-1"></i>Download Excel Report</button></li>
             </ul>
         </div>
     </div>
@@ -38,7 +262,7 @@
 <div class="container mt-4">
     <div class="row g-3">
         <div class="col-lg-4">
-            <div class="card">
+            <div class="card fade-in">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">Bikes</h5>
@@ -52,35 +276,35 @@
                             <option value="" selected disabled>Choose a bike...</option>
                         </select>
                     </div>
-                    <div id="selectedBikeInfo" class="small text-muted"></div>
+                    <div id="selectedBikeInfo" class="small text-muted p-2 bg-light rounded"></div>
                 </div>
             </div>
-            <div class="card mt-3">
+            <div class="card mt-3 fade-in">
                 <div class="card-body">
-                    <h6 class="mb-2">Summary</h6>
+                    <h6 class="mb-3">Summary</h6>
                     <div class="row text-center">
                         <div class="col-4">
-                            <div class="fw-bold" id="summaryTotal">0</div>
-                            <div class="text-muted small">Rentals</div>
+                            <div class="value text-primary" id="summaryTotal">0</div>
+                            <div class="label">Rentals</div>
                         </div>
                         <div class="col-4">
-                            <div class="fw-bold" id="summaryActive">0</div>
-                            <div class="text-muted small">Active</div>
+                            <div class="value text-success" id="summaryActive">0</div>
+                            <div class="label">Active</div>
                         </div>
                         <div class="col-4">
-                            <div class="fw-bold" id="summaryRevenue">$0</div>
-                            <div class="text-muted small">Revenue</div>
+                            <div class="value text-info" id="summaryRevenue">₹0</div>
+                            <div class="label">Revenue</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-lg-8">
-            <div class="card">
+            <div class="card fade-in">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">Rentals for Selected Bike</h5>
-                        <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-column flex-md-row">
+                        <h5 class="mb-2 mb-md-0">Rentals for Selected Bike</h5>
+                        <div class="btn-group-mobile d-md-block">
                             <button id="addRentalBtn" class="btn btn-success btn-sm" disabled data-bs-toggle="modal" data-bs-target="#addRentalModal">
                                 <i class="fa fa-plus me-1"></i>Add Rental
                             </button>
@@ -101,7 +325,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="6" class="text-center text-muted">Select a bike to view rentals</td></tr>
+                                <tr><td colspan="8" class="text-center text-muted py-4">Select a bike to view rentals</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -111,13 +335,16 @@
     </div>
 </div>
 
+<!-- Toast Container -->
+<div class="toast-container"></div>
+
 <!-- Add Bike Modal -->
 <div class="modal fade" id="addBikeModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Add Bike</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="addBikeForm">
@@ -141,36 +368,36 @@
 
 <!-- Add Rental Modal -->
 <div class="modal fade" id="addRentalModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Add Rental</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="addRentalForm">
           <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Start Date *</label>
               <input type="date" class="form-control" id="rentStart" required>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">End Date *</label>
               <input type="date" class="form-control" id="rentEnd" required>
             </div>
           </div>
           <div class="row g-2 mt-1">
-            <div class="col-4">
+            <div class="col-6 col-md-4">
               <label class="form-label">Advance</label>
-              <input type="number" class="form-control" id="rentAdvance" value="0">
+              <input type="number" class="form-control" id="rentAdvance" value="0" min="0">
             </div>
-            <div class="col-4">
+            <div class="col-6 col-md-4">
               <label class="form-label">Full Cost</label>
-              <input type="number" class="form-control" id="rentFullCost" value="0">
+              <input type="number" class="form-control" id="rentFullCost" value="0" min="0">
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4 mt-2 mt-md-0">
               <label class="form-label">Commission</label>
-              <input type="number" class="form-control" id="rentCommission" value="0">
+              <input type="number" class="form-control" id="rentCommission" value="0" min="0">
             </div>
           </div>
           <div class="mt-2">
@@ -182,19 +409,18 @@
               <option>Cancelled</option>
             </select>
           </div>
-          <!-- New optional renter details -->
           <div class="row g-2 mt-1">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Renter Name (optional)</label>
               <input type="text" class="form-control" id="rentRenterName" placeholder="John Doe">
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Contact No (optional)</label>
               <input type="text" class="form-control" id="rentContactNo" placeholder="+1 555 0100">
             </div>
           </div>
           <div class="mt-2">
-            <small>Duration: <span id="addDuration">0 days</span></small>
+            <small>Duration: <span id="addDuration" class="badge bg-light text-dark">0 days</span></small>
           </div>
         </form>
       </div>
@@ -208,37 +434,37 @@
 
 <!-- Edit Rental Modal -->
 <div class="modal fade" id="editRentalModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Edit Rental</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="editRentalForm">
           <input type="hidden" id="editRentalId">
           <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Start Date *</label>
               <input type="date" class="form-control" id="editRentStart" required>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">End Date *</label>
               <input type="date" class="form-control" id="editRentEnd" required>
             </div>
           </div>
           <div class="row g-2 mt-1">
-            <div class="col-4">
+            <div class="col-6 col-md-4">
               <label class="form-label">Advance</label>
-              <input type="number" class="form-control" id="editRentAdvance" value="0">
+              <input type="number" class="form-control" id="editRentAdvance" value="0" min="0">
             </div>
-            <div class="col-4">
+            <div class="col-6 col-md-4">
               <label class="form-label">Full Cost</label>
-              <input type="number" class="form-control" id="editRentFullCost" value="0">
+              <input type="number" class="form-control" id="editRentFullCost" value="0" min="0">
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4 mt-2 mt-md-0">
               <label class="form-label">Commission</label>
-              <input type="number" class="form-control" id="editRentCommission" value="0">
+              <input type="number" class="form-control" id="editRentCommission" value="0" min="0">
             </div>
           </div>
           <div class="mt-2">
@@ -250,19 +476,18 @@
               <option>Cancelled</option>
             </select>
           </div>
-          <!-- New optional renter details for edit -->
           <div class="row g-2 mt-1">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Renter Name (optional)</label>
               <input type="text" class="form-control" id="editRenterName" placeholder="John Doe">
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Contact No (optional)</label>
               <input type="text" class="form-control" id="editContactNo" placeholder="+1 555 0100">
             </div>
           </div>
           <div class="mt-2">
-            <small>Duration: <span id="editDuration">0 days</span></small>
+            <small>Duration: <span id="editDuration" class="badge bg-light text-dark">0 days</span></small>
           </div>
         </form>
       </div>
@@ -303,12 +528,44 @@
     document.getElementById('editRentEnd').addEventListener('change', updateEditDuration);
   });
 
+  function showToast(message, type = 'info') {
+    const toastContainer = document.querySelector('.toast-container');
+    const toastId = 'toast-' + Date.now();
+    
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    toastEl.id = toastId;
+    
+    toastEl.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          ${message}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    
+    toastContainer.appendChild(toastEl);
+    
+    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+    toast.show();
+    
+    // Remove the toast from DOM after it's hidden
+    toastEl.addEventListener('hidden.bs.toast', () => {
+      toastEl.remove();
+    });
+  }
+
   function updateAddDuration() {
     const start = document.getElementById('rentStart').value;
     const end = document.getElementById('rentEnd').value;
     const durationSpan = document.getElementById('addDuration');
     const days = calculateDays(start, end);
     durationSpan.textContent = `${days} days`;
+    durationSpan.className = `badge ${days > 0 ? 'bg-success' : 'bg-danger'} text-white`;
   }
 
   function updateEditDuration() {
@@ -317,6 +574,7 @@
     const durationSpan = document.getElementById('editDuration');
     const days = calculateDays(start, end);
     durationSpan.textContent = `${days} days`;
+    durationSpan.className = `badge ${days > 0 ? 'bg-success' : 'bg-danger'} text-white`;
   }
 
   async function loadBikes() {
@@ -324,7 +582,9 @@
       const res = await fetch(`${API_BASE}/bikes`);
       const data = await res.json();
       renderBikeOptions(data.bikes || []);
-    } catch (e) { alert('Failed to load bikes'); }
+    } catch (e) { 
+      showToast('Failed to load bikes', 'danger');
+    }
   }
 
   function renderBikeOptions(bikes) {
@@ -343,40 +603,44 @@
     const name = bikeSelect.options[bikeSelect.selectedIndex].dataset.name || '';
     currentBike = { bike_number: number, bike_name: name };
     selectedBikeInfo.textContent = `Selected: ${number} ${name ? '(' + name + ')' : ''}`;
+    selectedBikeInfo.className = 'small p-2 bg-light rounded';
     addRentalBtn.disabled = false;
     await loadRentals(number);
   }
 
   async function loadRentals(bikeNumber) {
-    rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Loading...</td></tr>';
+    rentalsTableBody.innerHTML = '<tr><td colspan="8" class="text-muted text-center py-4">Loading rentals...</td></tr>';
     try {
       const res = await fetch(`${API_BASE}/bikes/${bikeNumber}/rentals`);
       if (!res.ok) throw new Error('Load rentals failed');
       const data = await res.json();
       renderRentals(data.rentals || []);
     } catch (e) {
-      rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-danger text-center">Failed to load rentals</td></tr>';
+      rentalsTableBody.innerHTML = '<tr><td colspan="8" class="text-danger text-center py-4">Failed to load rentals</td></tr>';
     }
   }
 
   function renderRentals(rentals) {
     if (!rentals.length) {
-      rentalsTableBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No rentals yet</td></tr>';
+      rentalsTableBody.innerHTML = '<tr><td colspan="8" class="text-muted text-center py-4">No rentals yet</td></tr>';
       updateSummary([]);
       return;
     }
+    
     rentalsTableBody.innerHTML = '';
     rentals.forEach(r => {
       const days = calculateDays(r.rent_start_date, r.rent_end_date);
       const tr = document.createElement('tr');
+      
+      // For mobile view, we'll add data-label attributes
       tr.innerHTML = `
-        <td>${formatDate(r.rent_start_date)} - ${formatDate(r.rent_end_date)} (${days} days)</td>
-        <td>${(r.renter_name || '').toString()}</td>
-        <td>${(r.contact_no || '').toString()}</td>
-        <td>$${fmtNum(r.advance)}</td>
-        <td>$${fmtNum(r.full_cost)}</td>
-        <td>$${fmtNum(r.commission || 0)}</td>
-        <td>
+        <td data-label="Period">${formatDate(r.rent_start_date)} - ${formatDate(r.rent_end_date)}<br><small>(${days} days)</small></td>
+        <td data-label="Renter">${(r.renter_name || '-').toString()}</td>
+        <td data-label="Contact">${(r.contact_no || '-').toString()}</td>
+        <td data-label="Advance">₹${fmtNum(r.advance)}</td>
+        <td data-label="Full Cost">₹${fmtNum(r.full_cost)}</td>
+        <td data-label="Commission">₹${fmtNum(r.commission || 0)}</td>
+        <td data-label="Status">
           <select class="form-select form-select-sm status-select" data-id="${r.rental_id}">
             <option value="Booked" ${r.status === 'Booked' ? 'selected' : ''}>Booked</option>
             <option value="Active" ${r.status === 'Active' ? 'selected' : ''}>Active</option>
@@ -384,12 +648,13 @@
             <option value="Cancelled" ${r.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
           </select>
         </td>
-        <td class="text-end">
+        <td class="text-end actions-cell">
           <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${r.rental_id}"><i class="fa fa-edit"></i></button>
           <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${r.rental_id}"><i class="fa fa-trash"></i></button>
         </td>`;
       rentalsTableBody.appendChild(tr);
     });
+    
     rentalsTableBody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', onRentalAction));
     rentalsTableBody.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', onStatusChange));
     updateSummary(rentals);
@@ -399,30 +664,45 @@
     summaryTotal.textContent = rentals.length;
     summaryActive.textContent = rentals.filter(r => r.status === 'Active').length;
     const revenue = rentals.reduce((s, r) => s + (parseFloat(r.full_cost) || 0), 0);
-    summaryRevenue.textContent = `$${revenue.toFixed(2)}`;
-    const commission = rentals.reduce((s, r) => s + (parseFloat(r.commission) || 0), 0);
-    // Optionally add to summary, but since summary has only 3 cols, maybe add to revenue or create new
-    // For now, append to revenue text
-    summaryRevenue.textContent = `$${revenue.toFixed(2)} (Comm: $${commission.toFixed(2)})`;
+    summaryRevenue.textContent = `₹${revenue.toFixed(2)}`;
   }
 
   async function onAddBike() {
     const bike_number = document.getElementById('newBikeNumber').value.trim();
     const bike_name = document.getElementById('newBikeName').value.trim();
-    if (!bike_number || !bike_name) { alert('Both fields are required'); return; }
+    if (!bike_number || !bike_name) { 
+      showToast('Both fields are required', 'warning');
+      return; 
+    }
+    
     try {
-      const res = await fetch(`${API_BASE}/bikes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bike_number, bike_name }) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Add bike failed'); }
+      const res = await fetch(`${API_BASE}/bikes`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ bike_number, bike_name }) 
+      });
+      
+      if (!res.ok) { 
+        const e = await res.json(); 
+        throw new Error(e.error || 'Add bike failed'); 
+      }
+      
       document.getElementById('addBikeForm').reset();
       bootstrap.Modal.getInstance(document.getElementById('addBikeModal')).hide();
+      showToast('Bike added successfully', 'success');
       await loadBikes();
+      
       // Auto-select the newly added bike
-      bikeSelect.value = bike_number; bikeSelect.dispatchEvent(new Event('change'));
-    } catch (e) { alert(e.message); }
+      bikeSelect.value = bike_number; 
+      bikeSelect.dispatchEvent(new Event('change'));
+    } catch (e) { 
+      showToast(e.message, 'danger');
+    }
   }
 
   async function onAddRental() {
     if (!currentBike) return;
+    
     const payload = {
       rent_start_date: document.getElementById('rentStart').value,
       rent_end_date: document.getElementById('rentEnd').value,
@@ -434,14 +714,31 @@
       renter_name: document.getElementById('rentRenterName').value || '',
       contact_no: document.getElementById('rentContactNo').value || ''
     };
-    if (!payload.rent_start_date || !payload.rent_end_date) { alert('Dates are required'); return; }
+    
+    if (!payload.rent_start_date || !payload.rent_end_date) { 
+      showToast('Dates are required', 'warning');
+      return; 
+    }
+    
     try {
-      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Add rental failed'); }
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(payload) 
+      });
+      
+      if (!res.ok) { 
+        const e = await res.json(); 
+        throw new Error(e.error || 'Add rental failed'); 
+      }
+      
       document.getElementById('addRentalForm').reset();
       bootstrap.Modal.getInstance(document.getElementById('addRentalModal')).hide();
+      showToast('Rental added successfully', 'success');
       await loadRentals(currentBike.bike_number);
-    } catch (e) { alert(e.message); }
+    } catch (e) { 
+      showToast(e.message, 'danger');
+    }
   }
 
   function onRentalAction(ev) {
@@ -457,6 +754,7 @@
       const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`);
       if (!res.ok) throw new Error('Load rental failed');
       const r = await res.json();
+      
       document.getElementById('editRentalId').value = r.rental_id;
       document.getElementById('editRentStart').value = r.rent_start_date || '';
       document.getElementById('editRentEnd').value = r.rent_end_date || '';
@@ -466,9 +764,12 @@
       document.getElementById('editRentStatus').value = r.status || 'Booked';
       document.getElementById('editRenterName').value = r.renter_name || '';
       document.getElementById('editContactNo').value = r.contact_no || '';
+      
       updateEditDuration(); // Update duration display
       new bootstrap.Modal(document.getElementById('editRentalModal')).show();
-    } catch (e) { alert(e.message); }
+    } catch (e) { 
+      showToast(e.message, 'danger');
+    }
   }
 
   async function onEditRental() {
@@ -483,26 +784,53 @@
       renter_name: document.getElementById('editRenterName').value || '',
       contact_no: document.getElementById('editContactNo').value || ''
     };
-    if (!payload.rent_start_date || !payload.rent_end_date) { alert('Dates are required'); return; }
+    
+    if (!payload.rent_start_date || !payload.rent_end_date) { 
+      showToast('Dates are required', 'warning');
+      return; 
+    }
+    
     try {
-      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(payload) 
+      });
+      
       if (!res.ok) throw new Error('Update rental failed');
+      
       bootstrap.Modal.getInstance(document.getElementById('editRentalModal')).hide();
+      showToast('Rental updated successfully', 'success');
       await loadRentals(currentBike.bike_number);
-    } catch (e) { alert(e.message); }
+    } catch (e) { 
+      showToast(e.message, 'danger');
+    }
   }
 
   async function deleteRental(rentalId) {
-    if (!confirm('Delete this rental?')) return;
+    if (!confirm('Are you sure you want to delete this rental?')) return;
+    
     try {
       const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
+      
+      showToast('Rental deleted successfully', 'success');
       await loadRentals(currentBike.bike_number);
-    } catch (e) { alert(e.message); }
+    } catch (e) { 
+      showToast(e.message, 'danger');
+    }
   }
 
-  function formatDate(s) { if (!s) return 'N/A'; return new Date(s).toLocaleDateString(); }
-  function fmtNum(n) { const v = parseFloat(n)||0; return v.toFixed(2); }
+  function formatDate(s) { 
+    if (!s) return 'N/A'; 
+    return new Date(s).toLocaleDateString(); 
+  }
+  
+  function fmtNum(n) { 
+    const v = parseFloat(n)||0; 
+    return v.toFixed(2); 
+  }
+  
   function calculateDays(startDate, endDate) {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
@@ -516,20 +844,45 @@
     const select = event.target;
     const rentalId = select.dataset.id;
     const newStatus = select.value;
+
     if (!currentBike || !rentalId) return;
+
     try {
       const res = await fetch(`${API_BASE}/bikes/${currentBike.bike_number}/rentals/${rentalId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
+
       if (!res.ok) throw new Error('Failed to update status');
-      // Optionally, update summary or show a success message
+
+      showToast('Status updated successfully', 'success');
       await loadRentals(currentBike.bike_number);
     } catch (e) {
-      alert(e.message);
+      showToast(e.message, 'danger');
       // Revert select to previous value on error
       await loadRentals(currentBike.bike_number);
+    }
+  }
+
+  async function downloadReport() {
+    try {
+      showToast('Generating Excel report...', 'info');
+
+      // Create a temporary link to trigger download
+      const link = document.createElement('a');
+      link.href = `${API_BASE}/report/download`;
+      link.download = 'bike_report.xlsx';
+      link.style.display = 'none';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('Excel report downloaded successfully!', 'success');
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      showToast('Failed to download Excel report', 'danger');
     }
   }
 </script>
