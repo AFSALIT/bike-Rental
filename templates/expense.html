@@ -9,6 +9,7 @@
     <style>
         :root {
             --primary: #4361ee;
+            --primary-light: #6a7ef0;
             --secondary: #3f37c9;
             --success: #4cc9f0;
             --danger: #f72585;
@@ -108,12 +109,6 @@
             grid-template-columns: 1fr 2fr;
             gap: 30px;
             margin-bottom: 40px;
-        }
-
-        @media (max-width: 992px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
         }
 
         /* Card Styles */
@@ -418,14 +413,86 @@
             transform: translateX(0);
         }
 
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        /* Mobile Navigation */
+        .mobile-nav {
+            display: none;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .mobile-nav.active {
+            display: block;
+        }
+
         /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 1.5fr;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+        }
+
         @media (max-width: 768px) {
+            header {
+                padding: 20px;
+            }
+            
             header h1 {
                 font-size: 2.2rem;
+                padding-right: 40px;
             }
 
             header p {
                 font-size: 1rem;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .nav-btn {
+                display: none;
+            }
+            
+            .mobile-nav {
+                display: none;
+            }
+            
+            .mobile-nav.active {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .mobile-nav .nav-btn {
+                display: block;
+                text-align: center;
+                margin-top: 0;
             }
 
             .main-content {
@@ -435,9 +502,26 @@
             .card {
                 padding: 20px;
             }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            input, select, textarea {
+                padding: 12px;
+            }
+            
+            button {
+                padding: 14px 20px;
+            }
 
             th, td {
                 padding: 14px 10px;
+                font-size: 0.9rem;
+            }
+            
+            th {
+                font-size: 0.8rem;
             }
 
             .controls {
@@ -456,6 +540,63 @@
             .btn {
                 width: 100%;
                 justify-content: center;
+                padding: 8px 12px;
+            }
+            
+            .modal-content {
+                padding: 25px 20px;
+            }
+            
+            .detail-item strong {
+                font-size: 0.85rem;
+            }
+            
+            .detail-item span {
+                font-size: 1rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .container {
+                padding: 15px;
+            }
+            
+            header {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card {
+                padding: 18px;
+                border-radius: 12px;
+            }
+            
+            .card h2 {
+                font-size: 1.3rem;
+                margin-bottom: 20px;
+            }
+            
+            table {
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 12px 8px;
+            }
+            
+            /* Stack table cells on very small screens */
+            @media (max-width: 400px) {
+                .table-container {
+                    overflow-x: auto;
+                }
+                
+                table {
+                    min-width: 350px;
+                }
             }
         }
 
@@ -482,6 +623,23 @@
         tbody tr:nth-child(4) { animation-delay: 0.2s; }
         tbody tr:nth-child(5) { animation-delay: 0.25s; }
         tbody tr:nth-child(6) { animation-delay: 0.3s; }
+        
+        /* Improved mobile form elements */
+        @media (max-width: 768px) {
+            select {
+                /* Improve mobile dropdown experience */
+                appearance: none;
+                background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right 15px center;
+                background-size: 16px;
+            }
+            
+            input[type="date"] {
+                /* Improve date input on mobile */
+                min-height: 48px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -489,9 +647,17 @@
         <header>
             <h1><i class="fas fa-money-bill-wave"></i> Bike Expense Management</h1>
             <p>Track and manage expenses for your bike fleet</p>
-        </header>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="/" class="nav-btn"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a>
+            <button class="nav-btn" onclick="downloadReport()" style="background: linear-gradient(to right, #4cc9f0, #3aaedb);"><i class="fas fa-file-excel"></i> Download Excel Report</button>
 
-        <a href="/" class="nav-btn"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a>
+            <div class="mobile-nav" id="mobileNav">
+                <a href="/" class="nav-btn"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a>
+                <button class="nav-btn" onclick="downloadReport()" style="background: linear-gradient(to right, #4cc9f0, #3aaedb);"><i class="fas fa-file-excel"></i> Download Excel Report</button>
+            </div>
+        </header>
 
         <div class="main-content">
             <div class="card">
@@ -507,6 +673,10 @@
                     <div class="form-group">
                         <label for="date">Expense Date</label>
                         <input type="date" id="date" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount (₹)</label>
+                        <input type="number" id="amount" name="amount" placeholder="Enter expense amount" step="0.01" min="0" required>
                     </div>
                     <div class="form-group">
                         <label for="remark">Remark</label>
@@ -527,6 +697,7 @@
                             <tr>
                                 <th>Bike Number</th>
                                 <th>Date</th>
+                                <th>Amount</th>
                                 <th>Remark</th>
                                 <th>Actions</th>
                             </tr>
@@ -566,6 +737,13 @@
             const closeModal = document.querySelector('.close');
             const notification = document.getElementById('notification');
             const bikeSelect = document.getElementById('bike_number');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileNav = document.getElementById('mobileNav');
+
+            // Mobile menu toggle
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileNav.classList.toggle('active');
+            });
 
             // Set today's date as default for the date field
             const today = new Date().toISOString().split('T')[0];
@@ -617,9 +795,11 @@
                     if (data.expenses && data.expenses.length > 0) {
                         data.expenses.forEach(expense => {
                             const row = document.createElement('tr');
+                            const amount = expense.amount ? `₹${parseFloat(expense.amount).toFixed(2)}` : '₹0.00';
                             row.innerHTML = `
                                 <td>${expense.bike_number}</td>
                                 <td>${expense.date}</td>
+                                <td>${amount}</td>
                                 <td>${expense.remark}</td>
                                 <td>
                                     <div class="action-buttons">
@@ -635,7 +815,7 @@
                             tbody.appendChild(row);
                         });
                     } else {
-                        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 30px; color: var(--gray);">No expenses found. Add your first expense above.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 30px; color: var(--gray);">No expenses found. Add your first expense above.</td></tr>`;
                     }
                 } catch (error) {
                     console.error('Error fetching expenses:', error);
@@ -658,6 +838,10 @@
                             <div class="detail-item">
                                 <strong>Date</strong>
                                 <span>${expense.date}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Amount</strong>
+                                <span>${expense.amount ? `₹${parseFloat(expense.amount).toFixed(2)}` : '₹0.00'}</span>
                             </div>
                             <div class="detail-item">
                                 <strong>Remark</strong>
@@ -744,10 +928,40 @@
                 }
             });
 
+            // Close mobile nav when clicking outside
+            window.addEventListener('click', function(e) {
+                if (!e.target.closest('.mobile-nav') && !e.target.closest('.mobile-menu-btn')) {
+                    mobileNav.classList.remove('active');
+                }
+            });
+
             // Initial fetch of bikes and expenses
             fetchBikes();
             fetchExpenses();
         });
+
+        // Function to download report
+        async function downloadReport() {
+            try {
+                // Show loading notification
+                showNotification('Generating Excel report...', 'info');
+
+                // Create a temporary link to trigger download
+                const link = document.createElement('a');
+                link.href = `${baseUrl}/report/download`;
+                link.download = 'bike_report.xlsx';
+                link.style.display = 'none';
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showNotification('Excel report downloaded successfully!', 'success');
+            } catch (error) {
+                console.error('Error downloading report:', error);
+                showNotification('Failed to download Excel report', 'error');
+            }
+        }
     </script>
 </body>
 </html>
