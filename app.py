@@ -195,6 +195,12 @@ def bike_rentals_collection(bike_number):
             except Exception:
                 return 0
 
+        # Separate commission into components
+        total_commission = to_number(commission)
+        platform_fee = total_commission * 0.6  # 60% platform fee
+        service_charge = total_commission * 0.3  # 30% service charge
+        other_fees = total_commission * 0.1  # 10% other fees
+
         rental_data = {
             'bike_number': bike_number,
             'bike_name': bike_name,
@@ -202,11 +208,17 @@ def bike_rentals_collection(bike_number):
             'rent_end_date': rent_end_date,
             'advance': to_number(advance),
             'full_cost': to_number(full_cost),
-            'commission': to_number(commission),
             'status': status,
             # Store optional fields as provided (empty string if not supplied)
             'renter_name': renter_name,
-            'contact_no': contact_no
+            'contact_no': contact_no,
+            # Separated commission components
+            'commission': {
+                'platform_fee': platform_fee,
+                'service_charge': service_charge,
+                'other_fees': other_fees,
+                'total_commission': total_commission
+            }
         }
         try:
             new_ref = rentals_ref.child(bike_number).push(rental_data)
@@ -236,14 +248,28 @@ def bike_rentals_item(bike_number, rental_id):
         return jsonify(rental), 200
     elif request.method == 'PUT':
         data = request.get_json() or {}
-        # Ensure commission is handled as number
+        # Handle commission structure
         if 'commission' in data:
-            def to_number(val):
-                try:
-                    return float(val) if val not in (None, '') else 0
-                except Exception:
-                    return 0
-            data['commission'] = to_number(data['commission'])
+            if isinstance(data['commission'], (int, float)):
+                # Handle legacy single commission value
+                total_commission = float(data['commission'])
+                data['commission'] = {
+                    'platform_fee': total_commission * 0.6,
+                    'service_charge': total_commission * 0.3,
+                    'other_fees': total_commission * 0.1,
+                    'total_commission': total_commission
+                }
+            elif isinstance(data['commission'], dict):
+                # Handle new commission structure
+                commission_data = data['commission']
+                total_commission = (
+                    commission_data.get('platform_fee', 0) +
+                    commission_data.get('service_charge', 0) +
+                    commission_data.get('other_fees', 0)
+                )
+                commission_data['total_commission'] = total_commission
+                data['commission'] = commission_data
+
         try:
             rentals_ref.child(f"{bike_number}/{rental_id}").update(data)
             return jsonify({'message': 'Rental updated'}), 200
@@ -361,11 +387,31 @@ def generate_report():
             # Calculate total rental earnings for this bike
             bike_rentals = rentals.get(bike_number, {})
             total_rental_earning = 0
+            total_commission = 0
+            total_platform_fee = 0
+            total_service_charge = 0
+            total_other_fees = 0
+
             if isinstance(bike_rentals, dict):
-                total_rental_earning = sum(
-                    float(rental.get('full_cost', 0))
-                    for rental in bike_rentals.values()
-                )
+                for rental in bike_rentals.values():
+                    if isinstance(rental, dict):
+                        total_rental_earning += float(rental.get('full_cost', 0))
+
+                        # Handle commission calculation for both old and new structure
+                        commission_data = rental.get('commission', {})
+                        if isinstance(commission_data, dict):
+                            # New structure
+                            total_platform_fee += commission_data.get('platform_fee', 0)
+                            total_service_charge += commission_data.get('service_charge', 0)
+                            total_other_fees += commission_data.get('other_fees', 0)
+                            total_commission += commission_data.get('total_commission', 0)
+                        else:
+                            # Old structure - single commission value
+                            single_commission = float(commission_data or 0)
+                            total_platform_fee += single_commission * 0.6
+                            total_service_charge += single_commission * 0.3
+                            total_other_fees += single_commission * 0.1
+                            total_commission += single_commission
 
             # Calculate total expenses for this bike
             bike_expenses = []
@@ -384,7 +430,11 @@ def generate_report():
                 'purchase_price': purchase_price,
                 'total_rental_earning': total_rental_earning,
                 'total_expenses': total_expenses,
-                'net_profit': total_rental_earning - total_expenses - purchase_price
+                'total_commission': total_commission,
+                'platform_fee': total_platform_fee,
+                'service_charge': total_service_charge,
+                'other_fees': total_other_fees,
+                'net_profit': total_rental_earning - total_expenses - purchase_price - total_commission
             })
 
         return jsonify({"report": report_data}), 200
@@ -443,6 +493,10 @@ def download_report():
                 'Purchase Price ($)': purchase_price,
                 'Total Rental Earning ($)': total_rental_earning,
                 'Total Expenses ($)': total_expenses,
+                'Total Commission ($)': total_commission,
+                'Platform Fee ($)': total_platform_fee,
+                'Service Charge ($)': total_service_charge,
+                'Other Fees ($)': total_other_fees,
                 'Net Profit ($)': net_profit
             })
 
@@ -623,11 +677,147 @@ def get_graph_data():
                     'expenses': total_expenses
                 })
 
+        # 5. Commission Breakdown by Type (Pie Chart)
+        commission_by_type = {
+            'platform_fee': 0,
+            'service_charge': 0,
+            'other_fees': 0
+        }
+
+        if isinstance(rentals, dict):
+            for bike_rentals_data in rentals.values():
+                if isinstance(bike_rentals_data, dict):
+                    for rental in bike_rentals_data.values():
+                        if isinstance(rental, dict):
+                            commission_data = rental.get('commission', {})
+                            if isinstance(commission_data, dict):
+                                commission_by_type['platform_fee'] += commission_data.get('platform_fee', 0)
+                                commission_by_type['service_charge'] += commission_data.get('service_charge', 0)
+                                commission_by_type['other_fees'] += commission_data.get('other_fees', 0)
+                            else:
+                                # Handle legacy single commission value
+                                single_commission = float(commission_data or 0)
+                                commission_by_type['platform_fee'] += single_commission * 0.6
+                                commission_by_type['service_charge'] += single_commission * 0.3
+                                commission_by_type['other_fees'] += single_commission * 0.1
+
         return jsonify({
             "bike_performance": bike_performance,
             "revenue_trends": revenue_trends,
             "rental_status": status_counts,
-            "expense_breakdown": expense_breakdown
+            "expense_breakdown": expense_breakdown,
+            "commission_breakdown": commission_by_type
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/bikes/available', methods=['GET'])
+def available_bikes():
+    try:
+        bikes = bikes_ref.get() or {}
+        rentals = rentals_ref.get() or {}
+        available = []
+        for bike_number, bike_data in bikes.items():
+            bike_rentals = rentals.get(bike_number, {}) or {}
+            has_current = False
+            if isinstance(bike_rentals, dict):
+                for rental in bike_rentals.values():
+                    if isinstance(rental, dict):
+                        status = str(rental.get('status', '')).strip()
+                        if status in ('Booked', 'Active'):
+                            has_current = True
+                            break
+            if not has_current:
+                available.append({
+                    'bike_number': bike_number,
+                    'bike_name': bike_data.get('bike_name', '')
+                })
+        return jsonify({'available_bikes': available}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# New route for commission breakdown data
+@app.route('/dashboard/commission-breakdown', methods=['GET'])
+def get_commission_breakdown():
+    try:
+        rentals_ref = db.reference("bike_rentals")
+        rentals = rentals_ref.get() or {}
+
+        # Commission breakdown by type
+        commission_summary = {
+            'platform_fee': 0,
+            'service_charge': 0,
+            'other_fees': 0,
+            'total_commission': 0
+        }
+
+        # Commission trends over last 6 months
+        commission_trends = []
+        from datetime import datetime, timedelta
+        import calendar
+
+        for i in range(5, -1, -1):
+            date = datetime.now() - timedelta(days=i*30)
+            month_name = calendar.month_name[date.month]
+            year = date.year
+
+            monthly_commissions = {
+                'platform_fee': 0,
+                'service_charge': 0,
+                'other_fees': 0,
+                'total_commission': 0
+            }
+
+            if isinstance(rentals, dict):
+                for bike_rentals_data in rentals.values():
+                    if isinstance(bike_rentals_data, dict):
+                        for rental in bike_rentals_data.values():
+                            if isinstance(rental, dict):
+                                # Handle both old and new commission structure
+                                commission_data = rental.get('commission', {})
+                                if isinstance(commission_data, dict):
+                                    # New structure
+                                    monthly_commissions['platform_fee'] += commission_data.get('platform_fee', 0)
+                                    monthly_commissions['service_charge'] += commission_data.get('service_charge', 0)
+                                    monthly_commissions['other_fees'] += commission_data.get('other_fees', 0)
+                                    monthly_commissions['total_commission'] += commission_data.get('total_commission', 0)
+                                else:
+                                    # Old structure - single commission value
+                                    single_commission = float(commission_data or 0)
+                                    monthly_commissions['platform_fee'] += single_commission * 0.6
+                                    monthly_commissions['service_charge'] += single_commission * 0.3
+                                    monthly_commissions['other_fees'] += single_commission * 0.1
+                                    monthly_commissions['total_commission'] += single_commission
+
+                                # Check if rental date matches current month
+                                rental_date = rental.get('rent_start_date', '')
+                                if rental_date:
+                                    try:
+                                        rental_datetime = datetime.strptime(rental_date, '%Y-%m-%d')
+                                        if rental_datetime.year == year and rental_datetime.month == date.month:
+                                            # Commission already added above, no need to add again
+                                            pass
+                                    except:
+                                        pass
+
+            commission_trends.append({
+                'month': f"{month_name} {year}",
+                'platform_fee': monthly_commissions['platform_fee'],
+                'service_charge': monthly_commissions['service_charge'],
+                'other_fees': monthly_commissions['other_fees'],
+                'total_commission': monthly_commissions['total_commission']
+            })
+
+            # Add to total summary
+            commission_summary['platform_fee'] += monthly_commissions['platform_fee']
+            commission_summary['service_charge'] += monthly_commissions['service_charge']
+            commission_summary['other_fees'] += monthly_commissions['other_fees']
+            commission_summary['total_commission'] += monthly_commissions['total_commission']
+
+        return jsonify({
+            "commission_summary": commission_summary,
+            "commission_trends": commission_trends
         }), 200
 
     except Exception as e:
