@@ -283,19 +283,43 @@
                 <div class="card-body">
                     <h6 class="mb-3">Summary</h6>
                     <div class="row text-center">
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="value text-primary" id="summaryTotal">0</div>
                             <div class="label">Rentals</div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="value text-success" id="summaryActive">0</div>
                             <div class="label">Active</div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="value text-info" id="summaryRevenue">₹0</div>
                             <div class="label">Revenue</div>
                         </div>
+                        <div class="col-3">
+                            <div class="value text-warning" id="summaryCommission">₹0</div>
+                            <div class="label">Commission</div>
+                        </div>
                     </div>
+                    <hr>
+                    <h6 class="mb-2">Commission Breakdown</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="value text-info" id="summaryPlatformFee" style="font-size: 1rem;">₹0</div>
+                            <div class="label" style="font-size: 0.7rem;">Platform Fee</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="value text-success" id="summaryServiceCharge" style="font-size: 1rem;">₹0</div>
+                            <div class="label" style="font-size: 0.7rem;">Service Charge</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="value text-warning" id="summaryOtherFees" style="font-size: 1rem;">₹0</div>
+                            <div class="label" style="font-size: 0.7rem;">Other Fees</div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-2">Available Bikes</h6>
+                    <div id="availableBikesEmpty" class="text-muted small">Loading...</div>
+                    <ul id="availableBikesList" class="list-group list-group-flush"></ul>
                 </div>
             </div>
         </div>
@@ -328,6 +352,53 @@
                                 <tr><td colspan="8" class="text-center text-muted py-4">Select a bike to view rentals</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Charts Section -->
+    <div class="row mt-4" id="dashboardCharts" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-4">Analytics Dashboard</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Revenue Trends</h6>
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Rental Status Distribution</h6>
+                                    <canvas id="statusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Expense Breakdown</h6>
+                                    <canvas id="expenseChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Commission Breakdown</h6>
+                                    <canvas id="commissionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -509,11 +580,18 @@
   const summaryTotal = document.getElementById('summaryTotal');
   const summaryActive = document.getElementById('summaryActive');
   const summaryRevenue = document.getElementById('summaryRevenue');
+  const summaryCommission = document.getElementById('summaryCommission');
+  const summaryPlatformFee = document.getElementById('summaryPlatformFee');
+  const summaryServiceCharge = document.getElementById('summaryServiceCharge');
+  const summaryOtherFees = document.getElementById('summaryOtherFees');
+  const availableBikesList = document.getElementById('availableBikesList');
+  const availableBikesEmpty = document.getElementById('availableBikesEmpty');
 
   let currentBike = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     loadBikes();
+    loadAvailableBikes();
     document.getElementById('submitAddBike').addEventListener('click', onAddBike);
     document.getElementById('submitAddRental').addEventListener('click', onAddRental);
     document.getElementById('submitEditRental').addEventListener('click', onEditRental);
@@ -526,6 +604,11 @@
     // Add event listeners to update duration on date change in Edit Rental modal
     document.getElementById('editRentStart').addEventListener('change', updateEditDuration);
     document.getElementById('editRentEnd').addEventListener('change', updateEditDuration);
+
+    // Load dashboard charts if we're on the dashboard page
+    if (window.location.pathname === '/dashboard') {
+      loadDashboardCharts();
+    }
   });
 
   function showToast(message, type = 'info') {
@@ -598,6 +681,41 @@
     });
   }
 
+  async function loadAvailableBikes() {
+    try {
+      const res = await fetch(`${API_BASE}/bikes/available`);
+      if (!res.ok) throw new Error('Failed to load available bikes');
+      const data = await res.json();
+      renderAvailableBikes(data.available_bikes || []);
+    } catch (e) {
+      availableBikesEmpty.textContent = 'Failed to load available bikes';
+    }
+  }
+
+  function renderAvailableBikes(list) {
+    availableBikesList.innerHTML = '';
+    if (!list.length) {
+      availableBikesEmpty.textContent = 'No bikes available';
+      return;
+    }
+    availableBikesEmpty.textContent = '';
+    list.forEach(b => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between align-items-center';
+      li.textContent = `${b.bike_number} - ${b.bike_name || ''}`.trim();
+      // Quick-select button
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm btn-outline-primary';
+      btn.textContent = 'Select';
+      btn.addEventListener('click', () => {
+        bikeSelect.value = b.bike_number;
+        bikeSelect.dispatchEvent(new Event('change'));
+      });
+      li.appendChild(btn);
+      availableBikesList.appendChild(li);
+    });
+  }
+
   async function onBikeChange() {
     const number = bikeSelect.value;
     const name = bikeSelect.options[bikeSelect.selectedIndex].dataset.name || '';
@@ -665,6 +783,35 @@
     summaryActive.textContent = rentals.filter(r => r.status === 'Active').length;
     const revenue = rentals.reduce((s, r) => s + (parseFloat(r.full_cost) || 0), 0);
     summaryRevenue.textContent = `₹${revenue.toFixed(2)}`;
+
+    // Calculate commission breakdown
+    let totalCommission = 0;
+    let platformFee = 0;
+    let serviceCharge = 0;
+    let otherFees = 0;
+
+    rentals.forEach(r => {
+      const commissionData = r.commission;
+      if (commissionData && typeof commissionData === 'object') {
+        // New structure with separated commission
+        platformFee += commissionData.platform_fee || 0;
+        serviceCharge += commissionData.service_charge || 0;
+        otherFees += commissionData.other_fees || 0;
+        totalCommission += commissionData.total_commission || 0;
+      } else {
+        // Old structure with single commission value
+        const singleCommission = parseFloat(r.commission) || 0;
+        platformFee += singleCommission * 0.6;
+        serviceCharge += singleCommission * 0.3;
+        otherFees += singleCommission * 0.1;
+        totalCommission += singleCommission;
+      }
+    });
+
+    summaryCommission.textContent = `₹${totalCommission.toFixed(2)}`;
+    summaryPlatformFee.textContent = `₹${platformFee.toFixed(2)}`;
+    summaryServiceCharge.textContent = `₹${serviceCharge.toFixed(2)}`;
+    summaryOtherFees.textContent = `₹${otherFees.toFixed(2)}`;
   }
 
   async function onAddBike() {
@@ -736,6 +883,7 @@
       bootstrap.Modal.getInstance(document.getElementById('addRentalModal')).hide();
       showToast('Rental added successfully', 'success');
       await loadRentals(currentBike.bike_number);
+      await loadAvailableBikes();
     } catch (e) { 
       showToast(e.message, 'danger');
     }
@@ -802,6 +950,7 @@
       bootstrap.Modal.getInstance(document.getElementById('editRentalModal')).hide();
       showToast('Rental updated successfully', 'success');
       await loadRentals(currentBike.bike_number);
+      await loadAvailableBikes();
     } catch (e) { 
       showToast(e.message, 'danger');
     }
@@ -816,6 +965,7 @@
       
       showToast('Rental deleted successfully', 'success');
       await loadRentals(currentBike.bike_number);
+      await loadAvailableBikes();
     } catch (e) { 
       showToast(e.message, 'danger');
     }
@@ -823,7 +973,11 @@
 
   function formatDate(s) { 
     if (!s) return 'N/A'; 
-    return new Date(s).toLocaleDateString(); 
+    const d = new Date(s);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`; 
   }
   
   function fmtNum(n) { 
@@ -884,6 +1038,183 @@
       console.error('Error downloading report:', error);
       showToast('Failed to download Excel report', 'danger');
     }
+  }
+
+  // Dashboard Charts Functions
+  async function loadDashboardCharts() {
+    try {
+      // Show dashboard charts section
+      document.getElementById('dashboardCharts').style.display = 'block';
+
+      // Load graph data
+      const res = await fetch(`${API_BASE}/dashboard/graph-data`);
+      if (!res.ok) throw new Error('Failed to load dashboard data');
+      const data = await res.json();
+
+      // Render charts
+      renderRevenueChart(data.revenue_trends);
+      renderStatusChart(data.rental_status);
+      renderExpenseChart(data.expense_breakdown);
+      renderCommissionChart(data.commission_breakdown);
+
+    } catch (error) {
+      console.error('Error loading dashboard charts:', error);
+      showToast('Failed to load dashboard charts', 'danger');
+    }
+  }
+
+  function renderRevenueChart(revenueTrends) {
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: revenueTrends.map(item => item.month),
+        datasets: [
+          {
+            label: 'Rentals',
+            data: revenueTrends.map(item => item.rentals),
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+          },
+          {
+            label: 'Expenses',
+            data: revenueTrends.map(item => item.expenses),
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.1
+          },
+          {
+            label: 'Profit',
+            data: revenueTrends.map(item => item.profit),
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Revenue Trends (Last 6 Months)'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  function renderStatusChart(statusCounts) {
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(statusCounts),
+        datasets: [{
+          data: Object.values(statusCounts),
+          backgroundColor: [
+            'rgba(255, 205, 86, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(255, 99, 132, 0.8)'
+          ],
+          borderColor: [
+            'rgb(255, 205, 86)',
+            'rgb(54, 162, 235)',
+            'rgb(75, 192, 192)',
+            'rgb(255, 99, 132)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Rental Status Distribution'
+          }
+        }
+      }
+    });
+  }
+
+  function renderExpenseChart(expenseBreakdown) {
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: expenseBreakdown.map(item => `${item.bike_number} - ${item.bike_name}`),
+        datasets: [{
+          data: expenseBreakdown.map(item => item.expenses),
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 205, 86, 0.8)',
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(153, 102, 255, 0.8)',
+            'rgba(255, 159, 64, 0.8)'
+          ],
+          borderColor: [
+            'rgb(255, 99, 132)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 205, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)',
+            'rgb(255, 159, 64)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Expense Breakdown by Bike'
+          }
+        }
+      }
+    });
+  }
+
+  function renderCommissionChart(commissionBreakdown) {
+    const ctx = document.getElementById('commissionChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(commissionBreakdown),
+        datasets: [{
+          data: Object.values(commissionBreakdown),
+          backgroundColor: [
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 205, 86, 0.8)'
+          ],
+          borderColor: [
+            'rgb(75, 192, 192)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 205, 86)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Commission Breakdown by Type'
+          }
+        }
+      }
+    });
   }
 </script>
 </body>
