@@ -8,13 +8,15 @@ import io
 app = Flask(__name__, template_folder='templates')
 
 # Initialize Firebase Realtime Database
-cred = credentials.Certificate("bike-rendal-manage-firebase-adminsdk-fbsvc-528aeea51d.json")
+cred = credentials.Certificate("bike-rendal-manage-firebase-adminsdk-fbsvc-737b987c79.json")
 firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://bike-rendal-manage-default-rtdb.asia-southeast1.firebasedatabase.app/"   # 👈 replace with your Realtime DB URL
+    "databaseURL": "https://bike-rendal-manage-default-rtdb.asia-southeast1.firebasedatabase.app/"
 })
 
 rentals_ref = db.reference("bike_rentals")
 bikes_ref = db.reference("bikes")
+purchases_ref = db.reference("bike_purchases")
+expenses_ref = db.reference("expenses")
 
 
 
@@ -493,10 +495,6 @@ def download_report():
                 'Purchase Price ($)': purchase_price,
                 'Total Rental Earning ($)': total_rental_earning,
                 'Total Expenses ($)': total_expenses,
-                'Total Commission ($)': total_commission,
-                'Platform Fee ($)': total_platform_fee,
-                'Service Charge ($)': total_service_charge,
-                'Other Fees ($)': total_other_fees,
                 'Net Profit ($)': net_profit
             })
 
@@ -734,6 +732,161 @@ def available_bikes():
                     'bike_name': bike_data.get('bike_name', '')
                 })
         return jsonify({'available_bikes': available}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/bikes/<bike_number>/summary', methods=['GET'])
+def bike_summary(bike_number):
+    try:
+        # Fetch bike details
+        bike = bikes_ref.child(bike_number).get() or {}
+        if not bike:
+            return jsonify({'error': 'Bike not found'}), 404
+
+        # Fetch rentals
+        rentals = rentals_ref.child(bike_number).get() or {}
+        rentals_list = list(rentals.values()) if isinstance(rentals, dict) else []
+
+        # Fetch purchase
+        purchase = purchases_ref.child(bike_number).get() or {}
+
+        # Fetch expenses for this bike
+        all_expenses = expenses_ref.get() or {}
+        bike_expenses = []
+        if isinstance(all_expenses, dict):
+            for exp_id, exp_data in all_expenses.items():
+                if isinstance(exp_data, dict) and exp_data.get('bike_number') == bike_number:
+                    bike_expenses.append(exp_data)
+
+        # Compute aggregates
+        total_rentals = len(rentals_list)
+        total_revenue = sum(float(r.get('full_cost', 0)) for r in rentals_list)
+        total_advance = sum(float(r.get('advance', 0)) for r in rentals_list)
+
+        # Commission breakdown
+        platform_fee = sum(float(r.get('commission', {}).get('platform_fee', 0)) for r in rentals_list)
+        service_charge = sum(float(r.get('commission', {}).get('service_charge', 0)) for r in rentals_list)
+        other_fees = sum(float(r.get('commission', {}).get('other_fees', 0)) for r in rentals_list)
+        total_commission = sum(float(r.get('commission', {}).get('total_commission', 0)) for r in rentals_list)
+
+        # Status counts
+        status_counts = {}
+        for r in rentals_list:
+            status = str(r.get('status', 'Unknown')).strip()
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+        # Purchase and expenses
+        purchase_price = float(purchase.get('purchase_price', 0))
+        total_expenses = sum(float(e.get('amount', 0)) for e in bike_expenses)
+
+        summary = {
+            'bike_number': bike_number,
+            'bike_name': bike.get('bike_name', ''),
+            'total_rentals': total_rentals,
+            'total_revenue': total_revenue,
+            'total_advance': total_advance,
+            'commissions': {
+                'platform_fee': platform_fee,
+                'service_charge': service_charge,
+                'other_fees': other_fees,
+                'total_commission': total_commission
+            },
+            'status_counts': status_counts,
+            'purchase_price': purchase_price,
+            'total_expenses': total_expenses,
+            'net_profit': total_revenue - total_commission - total_expenses  # Simple net
+        }
+
+        return jsonify(summary), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/bikes/<bike_number>/report/download', methods=['GET'])
+def download_bike_report(bike_number):
+    try:
+        # Reuse summary logic
+        bike = bikes_ref.child(bike_number).get() or {}
+        if not bike:
+            return jsonify({'error': 'Bike not found'}), 404
+
+        rentals = rentals_ref.child(bike_number).get() or {}
+        rentals_list = list(rentals.values()) if isinstance(rentals, dict) else []
+
+        purchase = purchases_ref.child(bike_number).get() or {}
+
+        all_expenses = expenses_ref.get() or {}
+        bike_expenses = []
+        if isinstance(all_expenses, dict):
+            for exp_id, exp_data in all_expenses.items():
+                if isinstance(exp_data, dict) and exp_data.get('bike_number') == bike_number:
+                    bike_expenses.append(exp_data)
+
+        # Compute aggregates (same as summary)
+        total_rentals = len(rentals_list)
+        total_revenue = sum(float(r.get('full_cost', 0)) for r in rentals_list)
+        total_advance = sum(float(r.get('advance', 0)) for r in rentals_list)
+
+        platform_fee = sum(float(r.get('commission', {}).get('platform_fee', 0)) for r in rentals_list)
+        service_charge = sum(float(r.get('commission', {}).get('service_charge', 0)) for r in rentals_list)
+        other_fees = sum(float(r.get('commission', {}).get('other_fees', 0)) for r in rentals_list)
+        total_commission = sum(float(r.get('commission', {}).get('total_commission', 0)) for r in rentals_list)
+
+        status_counts = {}
+        for r in rentals_list:
+            status = str(r.get('status', 'Unknown')).strip()
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+        purchase_price = float(purchase.get('purchase_price', 0))
+        total_expenses = sum(float(e.get('amount', 0)) for e in bike_expenses)
+        net_profit = total_revenue - total_commission - total_expenses
+
+        # Create summary DataFrame
+        summary_data = {
+            'Metric': [
+                'Bike Number', 'Bike Name', 'Total Rentals', 'Total Revenue', 'Total Advance',
+                'Platform Fee', 'Service Charge', 'Other Fees', 'Total Commission',
+                'Purchase Price', 'Total Expenses', 'Net Profit'
+            ],
+            'Value': [
+                bike_number, bike.get('bike_name', ''), total_rentals, total_revenue, total_advance,
+                platform_fee, service_charge, other_fees, total_commission,
+                purchase_price, total_expenses, net_profit
+            ]
+        }
+        summary_df = pd.DataFrame(summary_data)
+
+        # Status counts row
+        status_row = pd.DataFrame({
+            'Metric': ['Status Counts'] + list(status_counts.keys()),
+            'Value': [''] + list(status_counts.values())
+        })
+        summary_df = pd.concat([summary_df, status_row], ignore_index=True)
+
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+
+            # Add rentals sheet if any
+            if rentals_list:
+                rentals_df = pd.DataFrame(rentals_list)
+                rentals_df.to_excel(writer, sheet_name='Rentals', index=False)
+
+            # Add expenses sheet if any
+            if bike_expenses:
+                expenses_df = pd.DataFrame(bike_expenses)
+                expenses_df.to_excel(writer, sheet_name='Expenses', index=False)
+
+        output.seek(0)
+
+        filename = f"bike_summary_{bike_number}.xlsx"
+        return Response(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
